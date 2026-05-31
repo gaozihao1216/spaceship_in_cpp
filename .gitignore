@@ -1,0 +1,54 @@
+# Build directories
+build/
+build-release/
+cmake-build-*/
+out/
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# Compiled binaries / libraries
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+
+# Large generated root tables / data
+root_tables/
+generated/
+artifacts/
+results/
+*.bin
+*.dat
+*.cache
+*.npy
+*.npz
+
+# Logs / profiling / coverage
+*.log
+*.profraw
+*.profdata
+*.gcda
+*.gcno
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# OS / editor files
+.DS_Store
+.vscode/
+.idea/
+.agents/
+.codex/
