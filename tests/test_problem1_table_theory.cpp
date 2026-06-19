@@ -11,6 +11,7 @@
 
 namespace {
 
+// 中文说明：提供绝对/相对容差浮点比较，用于理论反例中区分/确认几何量是否相同。
 bool approx_equal(double a, double b, double abs_tol = 1e-9, double rel_tol = 1e-12) {
     const double diff = std::abs(a - b);
     if (diff <= abs_tol) {
@@ -26,9 +27,8 @@ int main() {
     namespace planet_params = spaceship_cpp::planet_params;
     namespace problem1 = spaceship_cpp::problem1;
 
-    // Elliptic-orbit counterexample:
-    // same delta_lambda, different endpoint anomalies -> different endpoint radii and transfer geometry.
     {
+        // 中文说明：椭圆轨道反例——相同 delta_lambda 但不同端点真近点角 → 端点半径与转移几何应不同（表格不能仅依赖 delta_lambda）。
         const double delta_lambda = 0.8;
         const problem1::Problem1TableCell case1 = problem1::evaluate_problem1_table_cell_geometry(
             1.0,
@@ -51,9 +51,8 @@ int main() {
         assert(!approx_equal(case1.transfer_p, case2.transfer_p, 1e-6, 1e-12));
     }
 
-    // Circular-limit degeneration:
-    // if both radii are constant, same delta_lambda and theta_A imply the same transfer geometry.
     {
+        // 中文说明：圆轨道极限——半径恒定且 delta_lambda、theta_A 相同时，转移几何应对端点绝对角不敏感。
         const double theta_A = 0.6;
         const double delta_lambda = 1.1;
         const problem1::Problem1TableCell case1 = problem1::evaluate_problem1_table_cell_geometry(
@@ -75,10 +74,8 @@ int main() {
         assert(approx_equal(case1.transfer_theta_arrival, case2.transfer_theta_arrival, 1e-12, 1e-12));
     }
 
-    // Launch-phase counterexample for q:
-    // same nu_A at t and t + T_A, but target planet departure anomaly generally differs,
-    // so target-time branches cannot be universal functions of (nu_A, nu_B_arrive, theta_A) alone.
     {
+        // 中文说明：发射相位反例——t 与 t+T_A 时 nu_A 相同但 Mars 出发真近点角不同，故 target-time 分支不能仅是 (nu_A, nu_B_arrive, theta_A) 的函数。
         const double t1 = 0.0;
         const double t2 = planet_params::planet_orbital_period(planet_params::PlanetId::Earth);
         const double nu_A_t1 = planet_params::planet_true_anomaly_at_time(planet_params::PlanetId::Earth, t1);

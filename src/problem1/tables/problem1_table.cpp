@@ -25,10 +25,12 @@ using spaceship_cpp::common::normalize_angle_0_2pi;
 using spaceship_cpp::common::normalize_angle_minus_pi_pi;
 using spaceship_cpp::common::orbit_F;
 
+// 返回 quiet_NaN 哨兵值。
 double nan_value() {
     return std::numeric_limits<double>::quiet_NaN();
 }
 
+// 构造一个标记为 invalid 的空单元，所有数值字段填 NaN。
 Problem1TableCell make_invalid_cell(const std::string& reason) {
     const double nan = nan_value();
     Problem1TableCell cell{};
@@ -67,11 +69,13 @@ Problem1TableCell make_invalid_cell(const std::string& reason) {
     return cell;
 }
 
+// 检查 1+e·cos(angle) > 0，确保轨道半径公式分母为正。
 bool positive_orbit_denominator(double e, double angle) {
     const double denominator = 1.0 + e * std::cos(angle);
     return is_finite(denominator) && denominator > kDefaultEpsilon;
 }
 
+// 校验周期轴步长为正；步长非法时抛异常。
 double positive_mod_step(double start, double step, int count) {
     if (!(count > 0) || !is_finite(step) || !(step > 0.0)) {
         throw std::invalid_argument("invalid periodic axis configuration");
@@ -79,6 +83,7 @@ double positive_mod_step(double start, double step, int count) {
     return step;
 }
 
+// 校验 Problem1TableConfig 三维轴参数和圈数上限的合法性。
 void validate_problem1_table_config(const Problem1TableConfig& config) {
     if (config.departure_true_anomaly_count <= 0 ||
         config.target_true_anomaly_count <= 0 ||
@@ -98,17 +103,20 @@ void validate_problem1_table_config(const Problem1TableConfig& config) {
     }
 }
 
+// 校验后返回配置副本（用于构造时确保参数合法）。
 Problem1TableConfig validated_problem1_table_config(Problem1TableConfig config) {
     validate_problem1_table_config(config);
     return config;
 }
 
+// 计算表格总单元数 = nu_A × nu_B × theta_A。
 std::size_t problem1_table_cell_count(const Problem1TableConfig& config) {
     return static_cast<std::size_t>(config.departure_true_anomaly_count) *
         static_cast<std::size_t>(config.target_true_anomaly_count) *
         static_cast<std::size_t>(config.transfer_theta_departure_count);
 }
 
+// 由轴起点、步长和索引计算该网格点的角度值（归一化到 [0,2π)）。
 double axis_value(double start, double step, int index) {
     return normalize_angle_0_2pi(start + static_cast<double>(index) * step);
 }
@@ -121,6 +129,8 @@ struct PeriodicAxisLocation {
     double query_unwrapped;
 };
 
+// 在周期轴上定位查询角所在的 [lower, upper] 网格区间；
+// 解决周期边界（0↔2π）处插值需要正确包裹的问题。
 PeriodicAxisLocation locate_periodic_axis(
     double start,
     double step,
@@ -150,6 +160,7 @@ PeriodicAxisLocation locate_periodic_axis(
     };
 }
 
+// 根据偏心率分类转移圆锥曲线类型。
 Problem1TransferConicType classify_transfer_conic(double e) {
     if (!is_finite(e) || e < 0.0) {
         return Problem1TransferConicType::Invalid;
@@ -176,6 +187,7 @@ double reduced_time_from_true_anomaly(
     return std::remainder(raw_time, planet_params::planet_orbital_period(planet_id));
 }
 
+// 评估单个 (k,q) 分支的飞行时间和残差；是表格分支枚举的核心单元。
 Problem1TimeOfFlightBranch evaluate_problem1_table_branch(
     double transfer_e,
     double transfer_theta_departure,
@@ -281,6 +293,7 @@ Problem1TimeOfFlightBranch evaluate_problem1_table_branch(
     return branch;
 }
 
+// 枚举所有 (k,q) 组合并计算各自的时间分支列表。
 std::vector<Problem1TimeOfFlightBranch> build_problem1_table_branches(
     double transfer_e,
     double transfer_theta_departure,
@@ -310,6 +323,7 @@ std::vector<Problem1TimeOfFlightBranch> build_problem1_table_branches(
     return branches;
 }
 
+// 在单元分支列表中查找指定 k 的插值有效分支指针。
 const Problem1TimeOfFlightBranch* find_valid_transfer_branch_by_k(
     const Problem1TableCell& cell,
     int transfer_revolution
@@ -326,6 +340,7 @@ const Problem1TimeOfFlightBranch* find_valid_transfer_branch_by_k(
     return nullptr;
 }
 
+// 由表格配置生成元数据（轴定义、行星参数快照、schema 版本等）。
 Problem1TableMetadata make_problem1_table_metadata(const Problem1TableConfig& config) {
     const planet_params::PlanetParams& departure =
         planet_params::get_planet_params(config.departure_planet);
@@ -360,6 +375,7 @@ Problem1TableMetadata make_problem1_table_metadata(const Problem1TableConfig& co
 
 }  // namespace
 
+// 校验表格元数据 schema 版本是否为当前代码支持的 v2。
 void validate_problem1_table_metadata(const Problem1TableMetadata& metadata) {
     if (metadata.schema_version != "planet_angle_pair_table_v2") {
         throw std::invalid_argument(
@@ -367,6 +383,8 @@ void validate_problem1_table_metadata(const Problem1TableMetadata& metadata) {
     }
 }
 
+// 仅从两端点太阳中心几何构造表格单元（不含行星相位和时间分支）；
+// 隔离纯几何求值，便于单元测试。
 Problem1TableCell evaluate_problem1_table_cell_geometry(
     double departure_radius,
     double departure_global_angle,
@@ -475,6 +493,8 @@ Problem1TableCell evaluate_problem1_table_cell_geometry(
     return cell;
 }
 
+// 从行星局部真近点角 (nu_A, nu_B, theta_A) 生成完整表格单元（含时间分支）；
+// 解决"该行星相位下表格值是什么"的问题。
 Problem1TableCell evaluate_problem1_table_cell_for_planets(
     planet_params::PlanetId departure_planet,
     planet_params::PlanetId target_planet,
@@ -607,6 +627,7 @@ const std::vector<Problem1TableCell>& Problem1Table::cells() const {
     return cells_;
 }
 
+// 遍历三维网格填充所有单元，构建完整 endpoint transfer-time 表格。
 Problem1Table build_problem1_table(const Problem1TableConfig& config) {
     validate_problem1_table_config(config);
 
@@ -644,6 +665,7 @@ Problem1Table build_problem1_table(const Problem1TableConfig& config) {
     return table;
 }
 
+// 即时计算（非查表）指定角度的表格单元；sourced_from_grid=false。
 Problem1TableQueryResult query_problem1_table_exact(
     const Problem1Table& table,
     double departure_true_anomaly,
@@ -787,6 +809,7 @@ Problem1TableBranchQueryResult query_problem1_table_exact_branch_at_departure_ti
     return Problem1TableBranchQueryResult{std::move(query.cell), branch, true, false};
 }
 
+// 在单元已有分支列表中按 (k,q) 精确查找；未找到返回 nullptr。
 const Problem1TimeOfFlightBranch* find_problem1_table_branch(
     const Problem1TableCell& cell,
     int transfer_revolution,

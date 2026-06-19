@@ -13,6 +13,7 @@
 
 namespace {
 
+// 中文说明：提供带绝对/相对容差的浮点近似相等判断，避免配置步长比较受舍入误差影响。
 bool approx_equal(double a, double b, double abs_tol = 1e-12, double rel_tol = 1e-12) {
     const double diff = std::abs(a - b);
     if (diff <= abs_tol) {
@@ -31,6 +32,7 @@ int main() {
 
     const config::GlobalConfig& cfg = config::global_config();
 
+    // 中文说明：验证 Problem 1 求解器默认参数（圈数上限、扫描点数、容差等）均为正且满足最小约束。
     assert(cfg.problem1_solve.max_transfer_revolution >= 0);
     assert(cfg.problem1_solve.max_target_revolution >= 0);
     assert(cfg.problem1_solve.phi_scan_count >= 3);
@@ -38,6 +40,7 @@ int main() {
     assert(cfg.problem1_solve.max_bisection_iterations > 0);
     assert(cfg.problem1_solve.max_candidate_relative_residual > 0.0);
 
+    // 中文说明：验证 Problem 1 表格 smoke 默认配置的采样计数与圈数上限合法。
     assert(cfg.problem1_table_smoke.departure_true_anomaly_count > 0);
     assert(cfg.problem1_table_smoke.target_true_anomaly_count > 0);
     assert(cfg.problem1_table_smoke.transfer_theta_departure_count > 0);
@@ -45,6 +48,7 @@ int main() {
     assert(cfg.problem1_table_smoke.max_target_revolution >= 0);
 
     {
+        // 中文说明：验证 make_problem1_solve_input 将全局默认与行星/时间/转移角正确组装为求解输入。
         const problem1::Problem1SolveInput input = config::make_problem1_solve_input(
             planet_params::PlanetId::Earth,
             planet_params::PlanetId::Mars,
@@ -61,6 +65,7 @@ int main() {
     }
 
     {
+        // 中文说明：验证 make_problem1_table_config 按采样计数推导三轴步长，并传递圈数上限。
         const problem1::Problem1TableConfig table_config = config::make_problem1_table_config(
             planet_params::PlanetId::Earth,
             planet_params::PlanetId::Mars,
@@ -81,6 +86,7 @@ int main() {
     }
 
     {
+        // 中文说明：验证缩小采样网格后仍能通过 build_problem1_table 成功生成非空表格。
         config::Problem1TableDefaults small_defaults = cfg.problem1_table_smoke;
         small_defaults.departure_true_anomaly_count = 2;
         small_defaults.target_true_anomaly_count = 2;

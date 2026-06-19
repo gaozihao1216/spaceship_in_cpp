@@ -8,6 +8,7 @@
 
 namespace spaceship_cpp::config {
 
+// 返回全局单例默认配置；集中管理 Problem 1 求解/建表/诊断的默认参数。
 const GlobalConfig& global_config() {
     static const GlobalConfig kConfig{
         Problem1SolveDefaults{
@@ -51,6 +52,7 @@ const GlobalConfig& global_config() {
     return kConfig;
 }
 
+// 按统一默认参数构造 Problem1SolveInput；避免 app/测试中重复手写扫描和二分配置。
 problem1::Problem1SolveInput make_problem1_solve_input(
     planet_params::PlanetId departure,
     planet_params::PlanetId target,
@@ -73,6 +75,7 @@ problem1::Problem1SolveInput make_problem1_solve_input(
     };
 }
 
+// 按默认参数构造 3D 表格配置，将离散点数转换为固定角步长 2π/count。
 problem1::Problem1TableConfig make_problem1_table_config(
     planet_params::PlanetId departure,
     planet_params::PlanetId target,

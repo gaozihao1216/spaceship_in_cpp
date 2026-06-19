@@ -22,20 +22,25 @@ double nan() {
     return std::numeric_limits<double>::quiet_NaN();
 }
 
+// 二维速度矢量的点积。
 double dot(CartesianVelocity lhs, CartesianVelocity rhs) {
     return lhs.vx * rhs.vx + lhs.vy * rhs.vy;
 }
 
+// 二维速度矢量减法。
 CartesianVelocity subtract(CartesianVelocity lhs, CartesianVelocity rhs) {
     return CartesianVelocity{lhs.vx - rhs.vx, lhs.vy - rhs.vy};
 }
 
+// 二维速度矢量的模长。
 double norm(CartesianVelocity velocity) {
     return std::hypot(velocity.vx, velocity.vy);
 }
 
 }  // namespace
 
+// 规范化 (e, θ)：负偏心率等价于 e→|e|、θ→θ+π；
+// 解决不同模块对轨道参数表示不一致导致的比较/搜索问题。
 CanonicalOrbitETheta canonicalize_orbit_e_theta(double eccentricity, double periapsis_angle) {
     CanonicalOrbitETheta result{};
     if (!is_finite(eccentricity) || !is_finite(periapsis_angle)) {
@@ -52,6 +57,8 @@ CanonicalOrbitETheta canonicalize_orbit_e_theta(double eccentricity, double peri
     return result;
 }
 
+// 给定 v_∞ 和最小近心距，计算双曲线飞掠允许的最大转角；
+// 解决判断飞掠几何是否物理可行的问题。
 double compute_max_flyby_turn_angle_rad(
     double planet_mu,
     double min_periapsis_radius,
@@ -68,6 +75,8 @@ double compute_max_flyby_turn_angle_rad(
     return 2.0 * std::asin(std::clamp(1.0 / e_hyp_min, -1.0, 1.0));
 }
 
+// 反解达到指定转角所需的近心距 r_p；
+// 与 compute_max_flyby_turn_angle_rad 互为正逆问题。
 double compute_required_flyby_periapsis_radius(
     double planet_mu,
     double v_inf,
@@ -87,6 +96,8 @@ double compute_required_flyby_periapsis_radius(
     return planet_mu / (v_inf * v_inf) * (1.0 / sine - 1.0);
 }
 
+// 一站式评估飞掠物理可行性：检查 v_∞ 匹配、转角上限、近心距下界；
+// 解决 BFS 搜索中过滤不可行飞掠边的问题。
 FlybyPhysicalFeasibilityResult evaluate_flyby_physical_feasibility(
     planet_params::PlanetId flyby_planet,
     double flyby_time,

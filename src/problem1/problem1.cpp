@@ -26,6 +26,7 @@ using spaceship_cpp::common::normalize_angle_0_2pi;
 using spaceship_cpp::common::normalize_angle_minus_pi_pi;
 using spaceship_cpp::common::orbit_F;
 
+// 构造一个仅含 status 字段、其余为 NaN 的残差结果；用于快速返回失败状态。
 Problem1ResidualResult make_result(Problem1ResidualStatus status) {
     const double nan = std::numeric_limits<double>::quiet_NaN();
     return Problem1ResidualResult{
@@ -48,11 +49,13 @@ Problem1ResidualResult make_result(Problem1ResidualStatus status) {
     };
 }
 
+// 检查 1+e·cos(angle) > 0；确保轨道半径公式分母为正。
 bool positive_orbit_denominator(double e, double angle) {
     const double denominator = 1.0 + e * std::cos(angle);
     return is_finite(denominator) && denominator > kDefaultEpsilon;
 }
 
+// 校验 Problem1SolveInput 各字段的合法性；非法输入直接抛 invalid_argument。
 void validate_problem1_solve_input(const Problem1SolveInput& input) {
     if (!is_finite(input.launch_time_seconds_since_j2000) ||
         !is_finite(input.transfer_perihelion_angle) ||
@@ -70,6 +73,7 @@ void validate_problem1_solve_input(const Problem1SolveInput& input) {
     }
 }
 
+// 从求解输入和当前 (φ, k, q) 构造残差评估输入。
 Problem1ResidualInput make_residual_input(
     const Problem1SolveInput& input,
     double encounter_global_angle,
@@ -87,10 +91,12 @@ Problem1ResidualInput make_residual_input(
     };
 }
 
+// 残差计算成功且 residual 为有限值。
 bool is_success_with_finite_residual(const Problem1ResidualResult& result) {
     return result.status == Problem1ResidualStatus::Success && is_finite(result.residual);
 }
 
+// 判断两个残差值是否异号（含零）；用于扫描阶段发现变号区间。
 bool residual_sign_changed(double a, double b) {
     if (!is_finite(a) || !is_finite(b)) {
         return false;
@@ -101,6 +107,8 @@ bool residual_sign_changed(double a, double b) {
     return (a < 0.0 && b > 0.0) || (a > 0.0 && b < 0.0);
 }
 
+// 计算残差的归一化尺度 max(|T_transfer|, |T_target|, 1)；
+// 解决时间尺度很大时绝对残差不足以衡量精度的问题。
 double compute_problem1_residual_scale(const Problem1ResidualResult& result) {
     if (result.status != Problem1ResidualStatus::Success ||
         !is_finite(result.transfer_time_scale_free) ||
@@ -110,6 +118,7 @@ double compute_problem1_residual_scale(const Problem1ResidualResult& result) {
     return std::max({std::abs(result.transfer_time_scale_free), std::abs(result.target_time_scale_free), 1.0});
 }
 
+// 相对残差 = |residual| / scale；用于过滤未真正收敛的伪候选。
 double compute_problem1_relative_residual(const Problem1ResidualResult& result) {
     const double scale = compute_problem1_residual_scale(result);
     if (!is_finite(scale) || !(scale > 0.0) || !is_finite(result.residual)) {
@@ -118,6 +127,7 @@ double compute_problem1_relative_residual(const Problem1ResidualResult& result) 
     return std::abs(result.residual) / scale;
 }
 
+// 从成功的残差结果构造候选解；不通过相对残差阈值则返回 nullopt。
 std::optional<Problem1Candidate> make_candidate_from_residual_result(
     const Problem1SolveInput& input,
     double encounter_global_angle,
@@ -166,6 +176,8 @@ std::optional<Problem1Candidate> make_candidate_from_residual_result(
     };
 }
 
+// 在已知变号区间 [left_phi, right_phi] 上用二分法细化遇合角根；
+// 解决扫描网格精度不足、需在区间内精确求根的问题。
 std::optional<Problem1Candidate> refine_problem1_root_by_bisection(
     const Problem1SolveInput& input,
     double left_phi,
@@ -256,6 +268,7 @@ std::optional<Problem1Candidate> refine_problem1_root_by_bisection(
         true);
 }
 
+// 去重添加候选：同 (k,q) 且遇合角接近时保留相对残差更小的。
 void add_candidate_if_not_duplicate(std::vector<Problem1Candidate>* candidates, Problem1Candidate candidate) {
     for (Problem1Candidate& existing : *candidates) {
         if (existing.transfer_revolution != candidate.transfer_revolution ||
@@ -280,6 +293,8 @@ void add_candidate_if_not_duplicate(std::vector<Problem1Candidate>* candidates, 
 
 }  // namespace
 
+// 由两端点半径和相对近日点角解转移轨道偏心率；
+// 核心公式 e = (r2-r1)/(r1·cos(ξ1)-r2·cos(ξ2))。
 double compute_transfer_e_from_two_points(double r1, double xi1, double r2, double xi2) {
     if (!is_finite(r1) || !is_finite(r2) || !is_finite(xi1) || !is_finite(xi2)) {
         throw std::domain_error("compute_transfer_e_from_two_points requires finite inputs");
@@ -296,6 +311,7 @@ double compute_transfer_e_from_two_points(double r1, double xi1, double r2, doub
     return (r2 - r1) / denominator;
 }
 
+// 由出发点半径、偏心率和相对角反推半通径 p = r1·(1+e·cos(ξ1))。
 double compute_transfer_p_from_departure(double r1, double e_transfer, double xi1) {
     if (!is_finite(r1) || !is_finite(e_transfer) || !is_finite(xi1)) {
         throw std::domain_error("compute_transfer_p_from_departure requires finite inputs");
@@ -311,6 +327,8 @@ double compute_transfer_p_from_departure(double r1, double e_transfer, double xi
     return r1 * factor;
 }
 
+// Problem 1 核心残差函数：给定遇合角 φ，比较转移轨道飞行时间
+// 与目标行星轨道飞行时间是否一致；residual=0 即满足时间匹配。
 Problem1ResidualResult evaluate_problem1_residual(const Problem1ResidualInput& input) {
     if (!is_finite(input.launch_time_seconds_since_j2000) ||
         !is_finite(input.transfer_perihelion_angle) ||
@@ -433,6 +451,8 @@ Problem1ResidualResult evaluate_problem1_residual(const Problem1ResidualInput& i
     };
 }
 
+// Problem 1 求解器：扫描 [0,2π) 上的遇合角，找残差变号区间并二分细化，
+// 枚举所有 (k,q) 多圈分支，返回通过残差过滤的候选转移轨道列表。
 std::vector<Problem1Candidate> solve_problem1(const Problem1SolveInput& input) {
     validate_problem1_solve_input(input);
 

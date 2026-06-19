@@ -24,6 +24,8 @@ CartesianVelocity nan_cartesian_velocity() {
 
 }  // namespace
 
+// 由半径和轨道形状反推半通径 p = r·(1+e·cos(θ-θ_p))；
+// 解决只知道位置而速度公式需要 p 的问题。
 double compute_semi_latus_rectum_from_radius(
     double radius,
     double eccentricity,
@@ -43,6 +45,8 @@ double compute_semi_latus_rectum_from_radius(
     return p;
 }
 
+// 用开普勒轨道公式计算极坐标速度分量 (v_r, v_θ)；
+// 解决日心圆锥轨道上任意点的速度矢量计算。
 PolarVelocity compute_orbit_polar_velocity(
     double central_mu,
     double semi_latus_rectum,
@@ -67,6 +71,7 @@ PolarVelocity compute_orbit_polar_velocity(
     };
 }
 
+// 将极坐标速度 (v_r, v_θ) 旋转到全局日心直角坐标 (vx, vy)。
 CartesianVelocity polar_velocity_to_cartesian(
     double true_anomaly,
     const PolarVelocity& polar_velocity
@@ -84,6 +89,8 @@ CartesianVelocity polar_velocity_to_cartesian(
     };
 }
 
+// 一站式：由轨道参数和位置计算日心直角速度；
+// 组合半通径反推、极坐标速度、坐标旋转三步。
 CartesianVelocity compute_heliocentric_velocity_on_orbit(
     double central_mu,
     double radius,
@@ -101,6 +108,7 @@ CartesianVelocity compute_heliocentric_velocity_on_orbit(
     return polar_velocity_to_cartesian(true_anomaly, polar);
 }
 
+// 计算某颗行星在指定 J2000 秒偏移时刻的日心速度。
 CartesianVelocity compute_planet_heliocentric_velocity(
     planet_params::PlanetId planet,
     double time_seconds
@@ -116,6 +124,8 @@ CartesianVelocity compute_planet_heliocentric_velocity(
         params.orbit.theta_0);
 }
 
+// 计算转移轨道速度与行星速度的差值模长（发射/到达超速速度 v_∞）；
+// 解决评估发射 Δv 和飞掠入射条件的问题。
 double relative_speed_to_planet(
     planet_params::PlanetId planet,
     double time_seconds,
@@ -140,6 +150,7 @@ double relative_speed_to_planet(
     return std::hypot(dx, dy);
 }
 
+// 到达行星时的入射 v_∞；语义上等价于 relative_speed_to_planet。
 double compute_arrival_v_inf_at_planet(
     planet_params::PlanetId arrival_planet,
     double arrival_time,

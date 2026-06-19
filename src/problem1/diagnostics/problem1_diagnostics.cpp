@@ -74,6 +74,7 @@ void write_nan_branch_columns(std::ofstream& output) {
 
 }  // namespace
 
+// 汇总候选解的飞行时间范围和相对残差范围。
 Problem1SolveSummary summarize_problem1_candidates(const std::vector<Problem1Candidate>& candidates) {
     if (candidates.empty()) {
         const double nan = nan_value();
@@ -102,6 +103,7 @@ Problem1SolveSummary summarize_problem1_candidates(const std::vector<Problem1Can
     return summary;
 }
 
+// 将候选解列表导出为 CSV，便于外部工具画图或误差分析。
 void write_problem1_candidates_csv(
     const std::vector<Problem1Candidate>& candidates,
     const std::string& output_path
@@ -157,6 +159,7 @@ void write_problem1_candidates_csv(
     }
 }
 
+// 汇总表格的几何有效性、分支数量和飞行时间/偏心率范围。
 Problem1TableSummary summarize_problem1_table(const Problem1Table& table) {
     const std::vector<Problem1TableCell>& cells = table.cells();
     const double nan = nan_value();
@@ -234,6 +237,7 @@ Problem1TableSummary summarize_problem1_table(const Problem1Table& table) {
     return summary;
 }
 
+// 按 (k,q) 对、圆锥类型、失败原因等维度聚合分支拓扑统计。
 Problem1TableBranchDiagnostics summarize_problem1_table_branches(const Problem1Table& table) {
     Problem1TableBranchDiagnostics diagnostics{};
     diagnostics.cell_count = static_cast<int>(table.cells().size());
@@ -291,6 +295,7 @@ Problem1TableBranchDiagnostics summarize_problem1_table_branches(const Problem1T
     return diagnostics;
 }
 
+// 将表格所有单元及其分支导出为扁平 CSV（每行一个分支）。
 void write_problem1_table_csv(const Problem1Table& table, const std::string& output_path) {
     std::ofstream output(output_path);
     if (!output) {
@@ -440,6 +445,7 @@ void write_problem1_table_csv(const Problem1Table& table, const std::string& out
     }
 }
 
+// 将分支拓扑聚合统计导出为 summary CSV，便于快速判断表格质量。
 void write_problem1_table_branch_summary_csv(
     const Problem1Table& table,
     const std::string& output_path

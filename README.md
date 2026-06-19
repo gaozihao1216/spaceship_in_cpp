@@ -12,7 +12,7 @@
 - trajectory：轨道速度和飞掠物理工具
 - bfs：BFS 相关基础状态和角度适配器
 
-更详细的当前文件结构见 `docs/code_structure.md`。
+更详细的当前文件结构见 `docs/zh/code_structure.md`（英文：`docs/en/code_structure.md`）。完整文档索引见 `docs/README.md`。
 
 构建方式：
 

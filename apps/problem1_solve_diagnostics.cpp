@@ -18,6 +18,8 @@ const char* planet_label(spaceship_cpp::planet_params::PlanetId id) {
     return spaceship_cpp::planet_params::planet_name(id);
 }
 
+// 运行单组 (出发行星, 目标行星, 转移近日点角) 的 Problem 1 求解，
+// 打印候选解摘要并收集到全局列表供 CSV 导出。
 void run_case(
     spaceship_cpp::planet_params::PlanetId departure,
     spaceship_cpp::planet_params::PlanetId target,
@@ -60,6 +62,8 @@ void run_case(
 
 }  // namespace
 
+// 主程序：对 Earth→Mars/Venus/Mercury 在多个转移近日点角下批量求解，
+// 将结果写入 results/problem1_solve_diagnostics.csv。
 int main() {
     namespace common = spaceship_cpp::common;
     namespace config = spaceship_cpp::config;

@@ -10,6 +10,7 @@
 
 namespace {
 
+// 中文说明：提供固定绝对容差的浮点比较，用于验证外向轨道在 encounter/target 点半径匹配。
 bool approx_equal(double a, double b, double tol) {
     return std::abs(a - b) <= tol;
 }
@@ -20,6 +21,7 @@ int main() {
     namespace problem2 = spaceship_cpp::problem2;
 
     {
+        // 中文说明：验证弹弓不变量在合法输入下可计算且为有限值。
         const auto invariant = problem2::evaluate_problem2_slingshot_invariant(
             1.0,
             0.1,
@@ -30,6 +32,7 @@ int main() {
     }
 
     {
+        // 中文说明：验证当 encounter/target 角与几何自洽时 slingshot 残差接近零。
         const auto residual = problem2::evaluate_problem2_slingshot_residual(
             1.0,
             0.1,
@@ -42,6 +45,7 @@ int main() {
     }
 
     {
+        // 中文说明：验证由两点约束反推的外向轨道在 encounter 与 target 处半径分别匹配两行星轨道半径。
         const double R_J = 1.0;
         const double e_J = 0.05;
         const double R_K = 1.5;
@@ -63,6 +67,7 @@ int main() {
     }
 
     {
+        // 中文说明：验证退化输入（共点圆轨道、零转角）下外向轨道求解失败并给出 geometry_denominator_too_small。
         const auto geometry = problem2::solve_problem2_outgoing_orbit_from_two_points(
             1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
         assert(!geometry.valid);
@@ -70,7 +75,7 @@ int main() {
     }
 
     {
-        // 中文注释：旧简化公式只在特殊情形下与当前 invariant 等价，这里只保留为 sanity check。
+        // 中文说明：旧简化 theta-alpha 残差公式仅在特殊情形与当前 invariant 等价；此处作 sanity check 确保有限或显式无效。
         const auto residual = problem2::evaluate_problem2_slingshot_residual_from_theta_alpha(
             1.0,
             0.05,

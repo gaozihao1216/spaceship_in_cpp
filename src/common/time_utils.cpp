@@ -19,6 +19,8 @@ constexpr int kHoursPerDay = 24;
 constexpr int kSecondsPerHour = kSecondsPerMinute * kMinutesPerHour;
 constexpr int kSecondsPerDay = kSecondsPerHour * kHoursPerDay;
 
+// 公历 (年,月,日) → 自公元 0-03-01 起的天数；解决 UTC 日期与
+// 连续日序之间的换算，供 J2000 秒偏移计算使用。
 constexpr long long days_from_civil(int year, unsigned month, unsigned day) noexcept {
     year -= month <= 2;
     const int era = (year >= 0 ? year : year - 399) / 400;
@@ -34,6 +36,8 @@ struct CivilDate {
     unsigned day;
 };
 
+// 连续日序 → 公历日期；与 days_from_civil 互逆，
+// 解决 J2000 秒偏移反算 UTC 日期的问题。
 constexpr CivilDate civil_from_days(long long z) noexcept {
     z += 719468LL;
     const long long era = (z >= 0 ? z : z - 146096LL) / 146097LL;
@@ -47,10 +51,12 @@ constexpr CivilDate civil_from_days(long long z) noexcept {
     return CivilDate{year + (month <= 2U), month, day};
 }
 
+// 判断公历闰年；解决 2 月天数和日期合法性校验。
 constexpr bool is_leap_year(int year) noexcept {
     return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
 }
 
+// 返回指定年月的日数；解决 is_valid_datetime_utc 的逐月边界检查。
 constexpr int days_in_month(int year, int month) noexcept {
     switch (month) {
         case 1:
@@ -73,12 +79,16 @@ constexpr int days_in_month(int year, int month) noexcept {
     }
 }
 
+// 向下取整除法；解决秒数跨天边界时，负偏移或小数秒
+// 不能直接用截断除法得到正确日偏移的问题。
 long long floor_divide(double value, double divisor) {
     return static_cast<long long>(std::floor(value / divisor));
 }
 
 }  // namespace
 
+// 校验 UTC 日期时间各字段是否在合法范围内；
+// 解决无效输入进入 J2000 换算后产生静默错误的问题。
 bool is_valid_datetime_utc(const DateTimeUtc& dt) {
     if (dt.month < 1 || dt.month > 12) {
         return false;
@@ -99,6 +109,8 @@ bool is_valid_datetime_utc(const DateTimeUtc& dt) {
     return true;
 }
 
+// UTC 日期时间 → 相对 J2000.0 (2000-01-01T12:00:00Z) 的秒偏移；
+// 解决外部日历输入与内部统一时间尺度之间的转换。
 double seconds_from_j2000(const DateTimeUtc& dt) {
     if (!is_valid_datetime_utc(dt)) {
         throw std::invalid_argument("invalid UTC datetime");
@@ -112,6 +124,8 @@ double seconds_from_j2000(const DateTimeUtc& dt) {
     return static_cast<double>(day_delta) * static_cast<double>(kSecondsPerDay) + seconds_of_day - 43200.0;
 }
 
+// J2000 秒偏移 → UTC 日期时间；与 seconds_from_j2000 互逆，
+// 解决计算结果需要以人类可读日历格式输出的问题。
 DateTimeUtc datetime_from_j2000_seconds(double seconds_since_j2000) {
     if (!is_finite(seconds_since_j2000)) {
         throw std::invalid_argument("seconds_since_j2000 must be finite");

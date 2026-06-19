@@ -14,6 +14,7 @@ int main() {
     namespace problem1 = spaceship_cpp::problem1;
 
     {
+        // 中文说明：验证 phi_scan_count 低于最小值 3 时 solve_problem1 拒绝输入并抛出 invalid_argument。
         const problem1::Problem1SolveInput input{
             spaceship_cpp::planet_params::PlanetId::Earth,
             spaceship_cpp::planet_params::PlanetId::Mars,
@@ -36,6 +37,7 @@ int main() {
     }
 
     {
+        // 中文说明：验证 max_transfer_revolution 为负时 solve_problem1 拒绝输入。
         const problem1::Problem1SolveInput input{
             spaceship_cpp::planet_params::PlanetId::Earth,
             spaceship_cpp::planet_params::PlanetId::Mars,
@@ -58,6 +60,7 @@ int main() {
     }
 
     {
+        // 中文说明：验证 Earth→Mars k=0,q=0 下求解器产出候选解，且相对残差、到达时间与轨道要素满足约束。
         const problem1::Problem1SolveInput input{
             spaceship_cpp::planet_params::PlanetId::Earth,
             spaceship_cpp::planet_params::PlanetId::Mars,
@@ -108,6 +111,7 @@ int main() {
     }
 
     {
+        // 中文说明：验证 k,q 均允许为 1 时多分支候选解合法、同 (k,q) 相遇角不重复，且按 arrive_time 升序排列。
         const problem1::Problem1SolveInput input{
             spaceship_cpp::planet_params::PlanetId::Earth,
             spaceship_cpp::planet_params::PlanetId::Mars,
@@ -160,8 +164,7 @@ int main() {
             }
         }
 
-        // 中文注释：solve 输出本质上可以解释成按 arrive_time 排序的 root 列表：
-        // (varphi = encounter_global_angle, k = transfer_revolution, q = target_revolution, arrive_time)。
+        // 中文说明：solve 输出可视为按 arrive_time 排序的根列表 (encounter_global_angle, k, q, arrive_time)。
         for (std::size_t index = 1; index < candidates.size(); ++index) {
             assert(
                 candidates[index - 1].arrival_time_seconds_since_j2000 <=

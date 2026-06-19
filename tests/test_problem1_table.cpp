@@ -16,6 +16,7 @@
 
 namespace {
 
+// 中文说明：提供绝对/相对容差浮点比较，用于表格 cell/branch 字段逐点一致性断言。
 bool approx_equal(double a, double b, double abs_tol = 1e-9, double rel_tol = 1e-12) {
     const double diff = std::abs(a - b);
     if (diff <= abs_tol) {
@@ -24,6 +25,7 @@ bool approx_equal(double a, double b, double abs_tol = 1e-9, double rel_tol = 1e
     return diff <= rel_tol * std::max(std::abs(a), std::abs(b));
 }
 
+// 中文说明：判断 cell 是否至少含一条 valid 的 (k,q) 时间分支，用于存在性 smoke 检查。
 bool any_valid_branch(const spaceship_cpp::problem1::Problem1TableCell& cell) {
     for (const auto& branch : cell.time_of_flight_branches) {
         if (branch.valid) {
@@ -33,15 +35,17 @@ bool any_valid_branch(const spaceship_cpp::problem1::Problem1TableCell& cell) {
     return false;
 }
 
+// 中文说明：计算两角的最短周期距离，避免 0 与 2pi 被误判为不相等。
 double wrapped_angle_distance(double a, double b) {
-    // 中文注释：角度比较必须按周期量处理，避免 0 和 2pi 被误判为不相等。
     return std::abs(spaceship_cpp::common::normalize_angle_minus_pi_pi(a - b));
 }
 
+// 中文说明：基于 wrapped_angle_distance 判断两方向角是否在容差内相等。
 bool angle_equal(double a, double b, double abs_tol = 1e-9) {
     return wrapped_angle_distance(a, b) <= abs_tol;
 }
 
+// 中文说明：校验 invalid_reason 是否属于表格 v2 已知的几何/分支失败原因集合。
 bool is_known_invalid_reason(const std::string& reason) {
     return reason == "invalid geometry inputs" ||
         reason == "singular geometry denominator" ||
@@ -55,13 +59,14 @@ bool is_known_invalid_reason(const std::string& reason) {
         reason == "requested (k,q) branch is not present in this cell";
 }
 
+// 中文说明：逐字段比对两个 table cell；无效 cell 只比较原因字符串，有效 cell 比较几何与 conic 类型。
 void assert_cells_match(
     const spaceship_cpp::problem1::Problem1TableCell& lhs,
     const spaceship_cpp::problem1::Problem1TableCell& rhs
 ) {
     assert(lhs.valid == rhs.valid);
     if (!lhs.valid || !rhs.valid) {
-        // 中文注释：无效 cell 只要求原因合理且一致，不强行比较 NaN 数值字段。
+        // 中文说明：无效 cell 只要求原因合理且一致，不强行比较 NaN 数值字段。
         assert(!lhs.invalid_reason.empty());
         assert(!rhs.invalid_reason.empty());
         assert(lhs.invalid_reason == rhs.invalid_reason);
@@ -83,6 +88,7 @@ void assert_cells_match(
     assert(lhs.conic_type == rhs.conic_type);
 }
 
+// 中文说明：逐字段比对两条 (k,q) 时间分支，含 transfer/target 侧 ΔF、TOF 与 residual。
 void assert_branches_match(
     const spaceship_cpp::problem1::Problem1TimeOfFlightBranch& lhs,
     const spaceship_cpp::problem1::Problem1TimeOfFlightBranch& rhs
@@ -117,6 +123,7 @@ int main() {
     namespace planet_params = spaceship_cpp::planet_params;
     namespace problem1 = spaceship_cpp::problem1;
 
+    // 中文说明：构造 2×3×3 采样、k/q 最大为 1 的 Earth→Mars 表格，作为后续查询与一致性测试基准。
     const problem1::Problem1TableConfig config{
         planet_params::PlanetId::Earth,
         planet_params::PlanetId::Mars,
@@ -134,12 +141,15 @@ int main() {
     };
 
     const problem1::Problem1Table table = problem1::build_problem1_table(config);
+
+    // 中文说明：验证表格三轴尺寸与 cell 总数等于各轴采样数之积。
     assert(table.departure_true_anomaly_count() == 2);
     assert(table.target_true_anomaly_count() == 3);
     assert(table.transfer_theta_departure_count() == 3);
     assert(table.cells().size() == 18);
 
     {
+        // 中文说明：验证表格 metadata 的 schema 版本、三轴定义字符串与 (k,q) 圈数上限正确。
         const auto& metadata = table.metadata();
         assert(metadata.schema_version == "planet_angle_pair_table_v2");
         assert(metadata.axis1_definition.find("nu_A") != std::string::npos);
@@ -150,6 +160,7 @@ int main() {
     }
 
     {
+        // 中文说明：验证索引 (0,0,0) cell 的真近点角、全局角与 delta_global_angle 与行星历元一致。
         const problem1::Problem1TableCell& cell = table.at(0, 0, 0);
         const auto& departure = planet_params::get_planet_params(planet_params::PlanetId::Earth);
         const auto& target = planet_params::get_planet_params(planet_params::PlanetId::Mars);
@@ -163,6 +174,7 @@ int main() {
     }
 
     {
+        // 中文说明：验证直接 evaluate 与表格 at(0,1,1) 在半径、离心率与分支数量上一致。
         const problem1::Problem1TableCell direct = problem1::evaluate_problem1_table_cell_for_planets(
             planet_params::PlanetId::Earth,
             planet_params::PlanetId::Mars,
@@ -180,6 +192,7 @@ int main() {
     }
 
     {
+        // 中文说明：验证 exact query 对三轴同时加 2pi 后与原始角度查询返回相同 cell。
         const problem1::Problem1TableQueryResult query_a = problem1::query_problem1_table_exact(
             table,
             0.01,
@@ -194,7 +207,7 @@ int main() {
     }
 
     {
-        // 中文注释：分别单独测试三个周期轴在 0 和 2pi 边界处的一致性。
+        // 中文说明：分别单独测试三个周期轴在 0 和 2pi 边界处的一致性。
         const problem1::Problem1TableQueryResult base = problem1::query_problem1_table_exact(
             table,
             0.31,
@@ -255,7 +268,7 @@ int main() {
     }
 
     {
-        // 中文注释：随机抽样 exact query，并和直接几何公式计算结果逐点比对。
+        // 中文说明：随机抽样 exact query，并和直接几何公式计算结果逐点比对。
         std::mt19937_64 rng(20260522ULL);
         std::uniform_real_distribution<double> angle_dist(0.0, common::kTwoPi);
         for (int sample_index = 0; sample_index < 200; ++sample_index) {
@@ -293,7 +306,7 @@ int main() {
     }
 
     {
-        // 中文注释：每个有效几何 cell 都必须显式包含配置范围内全部 (k,q) 分支，即使其中某些分支无效也要保留原因。
+        // 中文说明：每个有效几何 cell 都必须显式包含配置范围内全部 (k,q) 分支，即使其中某些分支无效也要保留原因。
         for (const auto& cell : table.cells()) {
             if (!cell.valid) {
                 continue;
@@ -318,7 +331,7 @@ int main() {
     }
 
     {
-        // 中文注释：同一个 geometry cell、同一个 k、不同 q 的 transfer-side 字段必须保持不变。
+        // 中文说明：同一个 geometry cell、同一个 k、不同 q 的 transfer-side 字段必须保持不变。
         for (const auto& cell : table.cells()) {
             if (!cell.valid) {
                 continue;
@@ -348,7 +361,7 @@ int main() {
     }
 
     {
-        // 中文注释：随机抽查指定 (k,q) 分支，和直接 residual 计算得到的同一分支结果做一致性比对。
+        // 中文说明：随机抽查指定 (k,q) 分支，和直接 residual 计算得到的同一分支结果做一致性比对。
         std::mt19937_64 rng(20260523ULL);
         std::uniform_real_distribution<double> angle_dist(0.0, common::kTwoPi);
         std::uniform_int_distribution<int> k_dist(0, config.max_transfer_revolution);
@@ -374,7 +387,7 @@ int main() {
                 transfer_revolution,
                 target_revolution) != nullptr));
             if (!branch_query.cell.valid) {
-                // 中文注释：几何本身无效时，不要求存在任何 (k,q) branch；此时由 cell.invalid_reason 承担解释责任。
+                // 中文说明：几何本身无效时，不要求存在任何 (k,q) branch；此时由 cell.invalid_reason 承担解释责任。
                 assert(!branch_query.branch_found);
                 continue;
             }
@@ -410,7 +423,7 @@ int main() {
     }
 
     {
-        // 中文注释：branch signature 必须显式区分 (k,q) 组合，不能退化成只看 branch_count。
+        // 中文说明：branch signature 必须显式区分 (k,q) 组合，不能退化成只看 branch_count。
         const problem1::Problem1TableCell* selected_cell = nullptr;
         for (const auto& cell : table.cells()) {
             if (cell.valid) {
@@ -427,7 +440,7 @@ int main() {
     }
 
     {
-        // 中文注释：future interpolation admissibility 只接收 k，不接收 q；这里用一次真实调用做编译层面的静态约束。
+        // 中文说明：future interpolation admissibility 只接收 k，不接收 q；这里用一次真实调用做编译层面的静态约束。
         const problem1::Problem1TableInterpolationAdmissibility admissibility =
             problem1::check_problem1_table_transfer_branch_interpolation_admissibility(
                 table,
@@ -448,7 +461,7 @@ int main() {
     }
 
     {
-        // 中文注释：对一个有效查询点，8 顶点都必须几何有效、conic_type 一致，并且存在相同 k 的有效 transfer branch。
+        // 中文说明：对一个有效查询点，8 顶点都必须几何有效、conic_type 一致，并且存在相同 k 的有效 transfer branch。
         const problem1::Problem1TableConfig admissibility_config{
             planet_params::PlanetId::Earth,
             planet_params::PlanetId::Mars,
@@ -502,7 +515,7 @@ int main() {
     }
 
     {
-        // 中文注释：transfer-side helper 不应被 representative q / target-side residual 污染。
+        // 中文说明：transfer-side helper 不应被 representative q / target-side residual 污染。
         problem1::Problem1TimeOfFlightBranch synthetic_branch{};
         synthetic_branch.valid = false;
         synthetic_branch.transfer_revolution = 2;
@@ -525,7 +538,7 @@ int main() {
     }
 
     {
-        // 中文注释：pure transfer branch view 不包含 q、target_time、residual 语义，只表达 transfer-side k 视图。
+        // 中文说明：pure transfer branch view 不包含 q、target_time、residual 语义，只表达 transfer-side k 视图。
         problem1::Problem1TableCell synthetic_cell{};
         problem1::Problem1TimeOfFlightBranch branch_q0{};
         branch_q0.valid = false;
@@ -556,7 +569,7 @@ int main() {
     }
 
     {
-        // 中文注释：无效情况必须返回 admissible=false，且 reason 非空。
+        // 中文说明：无效情况必须返回 admissible=false，且 reason 非空。
         const problem1::Problem1TableInterpolationAdmissibility inadmissible =
             problem1::check_problem1_table_transfer_branch_interpolation_admissibility(
                 table,
@@ -583,7 +596,7 @@ int main() {
     }
 
     {
-        // 中文注释：admissibility 只依赖 geometry+k；即使后续选择不同 q，准入结果也不应发生变化。
+        // 中文说明：admissibility 只依赖 geometry+k；即使后续选择不同 q，准入结果也不应发生变化。
         const problem1::Problem1TableInterpolationAdmissibility admissibility_a =
             problem1::check_problem1_table_transfer_branch_interpolation_admissibility(
                 table,
@@ -603,7 +616,7 @@ int main() {
     }
 
     {
-        // 中文注释：真实 2x2x2 周期表下检查 8 顶点定位，不允许退化成同一个顶点；同时验证边界 wrap 和 local unwrap。
+        // 中文说明：真实 2x2x2 周期表下检查 8 顶点定位，不允许退化成同一个顶点；同时验证边界 wrap 和 local unwrap。
         const problem1::Problem1TableConfig locating_config{
             planet_params::PlanetId::Earth,
             planet_params::PlanetId::Venus,
@@ -675,7 +688,7 @@ int main() {
     }
 
     {
-        // 中文注释：stub 返回的 transfer-side 结果必须与 pure transfer branch view 一致，不包含 q / target_time / residual。
+        // 中文说明：stub 返回的 transfer-side 结果必须与 pure transfer branch view 一致，不包含 q / target_time / residual。
         const problem1::Problem1TableConfig stub_config{
             planet_params::PlanetId::Earth,
             planet_params::PlanetId::Mars,
@@ -723,6 +736,7 @@ int main() {
     }
 
     {
+        // 中文说明：验证 smoke 表格中至少存在一个含有效 (k,q) 时间分支的 cell。
         bool found_valid = false;
         for (const auto& cell : table.cells()) {
             if (any_valid_branch(cell)) {
@@ -734,6 +748,7 @@ int main() {
     }
 
     {
+        // 中文说明：验证旧 schema 版本 relative_phase_table_v1 在 metadata 校验时被拒绝。
         problem1::Problem1TableMetadata old_metadata = table.metadata();
         old_metadata.schema_version = "relative_phase_table_v1";
         bool threw = false;
@@ -746,6 +761,7 @@ int main() {
     }
 
     {
+        // 中文说明：验证 departure_true_anomaly_count=0 的非法配置在 build 时抛出 invalid_argument。
         problem1::Problem1TableConfig invalid = config;
         invalid.departure_true_anomaly_count = 0;
         bool threw = false;
@@ -758,6 +774,7 @@ int main() {
     }
 
     {
+        // 中文说明：验证 at() 越界访问抛出 out_of_range 而非未定义行为。
         bool threw = false;
         try {
             (void)table.at(2, 0, 0);

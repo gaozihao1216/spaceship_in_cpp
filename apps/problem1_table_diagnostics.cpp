@@ -14,6 +14,7 @@
 
 namespace {
 
+// 对指定行星对构建 endpoint transfer-time 表格，输出统计摘要和 CSV 文件。
 void run_table_diagnostics(
     spaceship_cpp::planet_params::PlanetId departure,
     spaceship_cpp::planet_params::PlanetId target,
@@ -57,6 +58,7 @@ void run_table_diagnostics(
 
 }  // namespace
 
+// 主程序：对 Earth→Mars/Venus/Mercury 构建小规模诊断表格并导出 CSV。
 int main() {
     namespace config = spaceship_cpp::config;
 

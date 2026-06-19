@@ -16,6 +16,7 @@ int main() {
 
     std::cout << std::setprecision(12) << std::scientific;
 
+    // 中文说明：验证地球相对自身（同轨道参数）的相对速度应接近零，排除自洽性错误。
     const auto earth = planet_params::PlanetId::Earth;
     const auto& earth_params = planet_params::get_planet_params(earth);
     const double time = 0.17 * planet_params::planet_orbital_period(earth);
@@ -24,6 +25,7 @@ int main() {
     assert(std::isfinite(earth_self_relative_speed));
     assert(earth_self_relative_speed <= 1e-9);
 
+    // 中文说明：验证人造转移轨道（e/theta_0 与地球不同）相对地球速度为有限非负值。
     const double artificial_relative_speed = trajectory::relative_speed_to_planet(earth, time, 0.3, 0.4);
     assert(std::isfinite(artificial_relative_speed));
     assert(artificial_relative_speed >= 0.0);

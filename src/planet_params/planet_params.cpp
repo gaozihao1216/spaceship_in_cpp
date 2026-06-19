@@ -182,10 +182,14 @@ constexpr SolarSystemPhysicalParams kSolarSystemPhysicalParams{
     1.32712440041279419e20,
 };
 
+// 由半通径 p 和偏心率 e 计算半长轴 a = p/(1-e²)；
+// 解决平均角速度和轨道周期公式需要半长轴的问题。
 double semi_major_axis_from_orbit(const PlanetOrbitParams& orbit) {
     return orbit.p / (1.0 - orbit.e * orbit.e);
 }
 
+// 将绝对时间折叠到一个轨道周期内；解决按时间推进真近点角时
+// 大时间偏移需等价到 [0, T) 的问题。
 double reduce_time_by_orbital_period(double time_seconds, double period_seconds) {
     if (!is_finite(time_seconds) || !is_finite(period_seconds) || !(period_seconds > 0.0)) {
         throw std::invalid_argument("invalid time or orbital period");
@@ -193,6 +197,8 @@ double reduce_time_by_orbital_period(double time_seconds, double period_seconds)
     return std::remainder(time_seconds, period_seconds);
 }
 
+// 已知目标轨道积分值 F，用牛顿法反解椭圆轨道真近点角 xi；
+// 解决"给定时刻行星应在哪个相位"的核心逆问题。
 double solve_true_anomaly_from_orbit_F(double e, double target_F) {
     if (!is_finite(e) || !is_finite(target_F)) {
         throw std::invalid_argument("solve_true_anomaly_from_orbit_F requires finite inputs");
@@ -228,6 +234,7 @@ double solve_true_anomaly_from_orbit_F(double e, double target_F) {
     return xi;
 }
 
+// 启动时校验单颗行星静态参数的物理合法性；防止错误常数进入运行时计算。
 void validate_planet_params(const PlanetParams& planet) {
     if (planet.name == nullptr || planet.name[0] == '\0') {
         throw std::runtime_error("planet name must be non-empty");
@@ -258,12 +265,14 @@ void validate_planet_params(const PlanetParams& planet) {
     }
 }
 
+// 启动时校验太阳引力参数 GM_sun 为正。
 void validate_solar_system_physical_params(const SolarSystemPhysicalParams& params) {
     if (!(params.GM_sun > 0.0)) {
         throw std::runtime_error("GM_sun must be positive");
     }
 }
 
+// PlanetId 枚举 → 数组下标；解决八大行星参数表的 O(1) 索引访问。
 std::size_t planet_index(PlanetId id) {
     switch (id) {
         case PlanetId::Mercury:
@@ -286,6 +295,7 @@ std::size_t planet_index(PlanetId id) {
     throw std::invalid_argument("unknown PlanetId");
 }
 
+// 程序启动时自动触发行星参数校验（静态初始化）。
 struct PlanetParamsValidationRunner {
     PlanetParamsValidationRunner() {
         for (const PlanetParams& planet : kAllPlanetParams) {
@@ -299,25 +309,30 @@ const PlanetParamsValidationRunner kValidationRunner{};
 
 }  // namespace
 
+// 按 PlanetId 返回对应行星的静态轨道/物理参数。
 const PlanetParams& get_planet_params(PlanetId id) {
     (void)kValidationRunner;
     return kAllPlanetParams.at(planet_index(id));
 }
 
+// 返回太阳标准引力参数 GM_sun。
 const SolarSystemPhysicalParams& get_solar_system_physical_params() {
     (void)kValidationRunner;
     return kSolarSystemPhysicalParams;
 }
 
+// 返回全部 8 颗行星的参数数组，供遍历和诊断使用。
 const std::array<PlanetParams, 8>& all_planet_params() {
     (void)kValidationRunner;
     return kAllPlanetParams;
 }
 
+// 返回行星英文名称字符串。
 const char* planet_name(PlanetId id) {
     return get_planet_params(id).name;
 }
 
+// 判断 PlanetId 是否为已知的八大行星之一。
 bool is_valid_planet_id(PlanetId id) {
     switch (id) {
         case PlanetId::Mercury:
@@ -333,10 +348,12 @@ bool is_valid_planet_id(PlanetId id) {
     return false;
 }
 
+// 返回 PlanetId 的底层整数值（0=Mercury, …, 7=Neptune）。
 int planet_id_raw_value(PlanetId id) {
     return static_cast<int>(id);
 }
 
+// 计算行星平均角速度 n = √(GM/a³)；解决按时间线性推进轨道相位的问题。
 double planet_mean_motion(PlanetId id) {
     const PlanetParams& planet = get_planet_params(id);
     const double semi_major_axis = semi_major_axis_from_orbit(planet.orbit);
@@ -344,10 +361,13 @@ double planet_mean_motion(PlanetId id) {
         (semi_major_axis * semi_major_axis * semi_major_axis));
 }
 
+// 计算行星轨道周期 T = 2π/n。
 double planet_orbital_period(PlanetId id) {
     return kTwoPi / planet_mean_motion(id);
 }
 
+// 计算指定 J2000 秒偏移时刻的行星真近点角（归一化到 [0,2π)）；
+// 解决 Problem 1/2 需要知道行星在任意时刻相位的问题。
 double planet_true_anomaly_at_time(PlanetId id, double time_seconds_since_j2000) {
     if (!is_finite(time_seconds_since_j2000)) {
         throw std::invalid_argument("time_seconds_since_j2000 must be finite");
@@ -364,6 +384,7 @@ double planet_true_anomaly_at_time(PlanetId id, double time_seconds_since_j2000)
     return normalize_angle_0_2pi(varphi_unwrapped);
 }
 
+// 由真近点角计算日心半径 r = p/(1+e·cos(φ))。
 double planet_radius_at_true_anomaly(PlanetId id, double varphi) {
     if (!is_finite(varphi)) {
         throw std::invalid_argument("varphi must be finite");
@@ -373,6 +394,8 @@ double planet_radius_at_true_anomaly(PlanetId id, double varphi) {
     return planet.orbit.p / (1.0 + planet.orbit.e * std::cos(varphi));
 }
 
+// 一站式计算指定时刻的行星状态（真近点角、全局角、半径、平面坐标）；
+// 解决调用方需同时获取多个几何量的问题。
 PlanetState planet_state_at_time(PlanetId id, double time_seconds_since_j2000) {
     const PlanetParams& planet = get_planet_params(id);
     const double varphi = planet_true_anomaly_at_time(id, time_seconds_since_j2000);

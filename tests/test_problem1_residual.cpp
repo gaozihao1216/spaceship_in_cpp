@@ -12,10 +12,12 @@
 
 namespace {
 
+// 中文说明：提供固定绝对容差的浮点比较，用于转移圆锥几何反推验证。
 bool approx_equal(double a, double b, double eps = 1e-10) {
     return std::abs(a - b) <= eps;
 }
 
+// 中文说明：提供绝对/相对容差浮点比较，用于行星半径量级下的重建半径断言。
 bool approx_equal_rel(double a, double b, double abs_tol, double rel_tol) {
     const double diff = std::abs(a - b);
     if (diff <= abs_tol) {
@@ -30,6 +32,7 @@ int main() {
     namespace problem1 = spaceship_cpp::problem1;
 
     {
+        // 中文说明：验证由两点 (r,xi) 反推的转移离心率 e 与半通径 p 能重建原始半径。
         const double r1 = 1.0;
         const double r2 = 1.2;
         const double xi1 = 0.3;
@@ -44,6 +47,7 @@ int main() {
     }
 
     {
+        // 中文说明：验证出发/到达角相同（退化几何）时 compute_transfer_e_from_two_points 抛出 domain_error。
         bool threw = false;
         try {
             (void)problem1::compute_transfer_e_from_two_points(1.0, 0.0, 1.0, 0.0);
@@ -54,6 +58,7 @@ int main() {
     }
 
     {
+        // 中文说明：验证近日点角 phi0 未归一化到 [0,2pi) 时 e 取负值，但 p 与几何仍自洽（符号约定）。
         const double e_true = 0.4;
         const double p_true = 2.0;
         const double phi0_true = spaceship_cpp::common::kPi;
@@ -77,6 +82,7 @@ int main() {
     }
 
     {
+        // 中文说明：验证 Earth→Mars 有效输入下残差成功时，转移几何、ΔF 与 residual=TOF_transfer-TOF_target 自洽。
         const problem1::Problem1ResidualInput input{
             spaceship_cpp::planet_params::PlanetId::Earth,
             spaceship_cpp::planet_params::PlanetId::Mars,
@@ -109,6 +115,7 @@ int main() {
     }
 
     {
+        // 中文说明：验证目标全局角为 NaN 时 evaluate_problem1_residual 返回 InvalidInput 而非未定义行为。
         const problem1::Problem1ResidualInput input{
             spaceship_cpp::planet_params::PlanetId::Earth,
             spaceship_cpp::planet_params::PlanetId::Mars,

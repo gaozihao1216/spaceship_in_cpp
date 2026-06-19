@@ -8,6 +8,8 @@
 
 namespace spaceship_cpp::bfs {
 
+// 全局近日点角 → Problem 2 以飞掠行星近日点为零点的局部角；
+// 解决 BFS 搜索（全局角）与 Problem 2 公式（局部角）的坐标系不一致。
 double global_periapsis_angle_to_problem2_local(
     planet_params::PlanetId flyby_planet,
     double global_periapsis_angle
@@ -16,6 +18,7 @@ double global_periapsis_angle_to_problem2_local(
     return common::normalize_angle_0_2pi(global_periapsis_angle - planet.orbit.theta_0);
 }
 
+// Problem 2 局部近日点角 → 全局近日点角；与上函数互逆。
 double problem2_local_periapsis_angle_to_global(
     planet_params::PlanetId flyby_planet,
     double local_periapsis_angle

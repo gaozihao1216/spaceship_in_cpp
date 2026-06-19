@@ -23,6 +23,8 @@ double quiet_nan() {
 
 }  // namespace
 
+// 圆锥轨道半径 r = p / (1 + e·cos(θ-θ_p))；
+// 解决给定轨道参数和相对真近点角时的位置计算。
 double problem2_orbit_radius(
     double semi_latus_rectum,
     double eccentricity,
@@ -43,6 +45,8 @@ double problem2_orbit_radius(
     return is_finite(radius) ? radius : quiet_nan();
 }
 
+// 计算飞掠弹弓不变量；同一飞掠事件下入射/出射轨道的不变量应相等，
+// 解决判断两条轨道能否由同一次行星飞掠连接的问题。
 SlingshotInvariantResult evaluate_problem2_slingshot_invariant(
     double encounter_true_anomaly_phi,
     double planet_eccentricity_e_J,
@@ -94,6 +98,8 @@ SlingshotInvariantResult evaluate_problem2_slingshot_invariant(
     return result;
 }
 
+// 由飞掠点 (R_J,φ)、目标点 (R_K,α) 和出射近日点角 θ' 反推外向转移轨道 (e,p)；
+// 解决 Problem 2 中"给定出射方向后出射轨道是什么"的几何问题。
 SlingshotGeometryResult solve_problem2_outgoing_orbit_from_two_points(
     double R_J,
     double e_J,
@@ -165,6 +171,8 @@ SlingshotGeometryResult solve_problem2_outgoing_orbit_from_two_points(
     return result;
 }
 
+// 比较入射/出射轨道的弹弓不变量，residual = I_out - I_in；
+// residual=0 表示满足弹弓约束，是 Problem 2 求根的目标函数。
 SlingshotResidualResult evaluate_problem2_slingshot_residual(
     double phi,
     double e_J,
@@ -198,6 +206,8 @@ SlingshotResidualResult evaluate_problem2_slingshot_residual(
     return result;
 }
 
+// 从候选 (θ', α) 出发：先解外向轨道，再计算弹弓残差；
+// 解决搜索过程中一站式评估候选飞掠方案的问题。
 SlingshotThetaAlphaResidualResult evaluate_problem2_slingshot_residual_from_theta_alpha(
     double R_J,
     double e_J,

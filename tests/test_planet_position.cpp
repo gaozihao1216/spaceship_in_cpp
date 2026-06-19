@@ -11,10 +11,12 @@
 
 namespace {
 
+// 中文说明：提供固定绝对容差的浮点比较，用于半径与坐标分量断言。
 bool approx_equal(double a, double b, double eps = 1e-9) {
     return std::abs(a - b) <= eps;
 }
 
+// 中文说明：按最短角差比较两个方向角，避免 0 与 2pi 被误判为不相等。
 bool angle_close(double a, double b, double eps = 1e-9) {
     return std::abs(spaceship_cpp::common::normalize_angle_minus_pi_pi(a - b)) <= eps;
 }
@@ -25,6 +27,7 @@ int main() {
     namespace common = spaceship_cpp::common;
     namespace planet_params = spaceship_cpp::planet_params;
 
+    // 中文说明：对每颗行星验证 J2000 历元真近点角、全局角、半径-坐标一致性，以及 ±T、大倍数周期后相位可重复。
     for (const auto& planet : planet_params::all_planet_params()) {
         const double varphi_at_epoch = planet_params::planet_true_anomaly_at_time(planet.id, 0.0);
         assert(angle_close(varphi_at_epoch, planet.orbit.varphi_0));
@@ -55,6 +58,7 @@ int main() {
         const double negative_quarter_large = planet_params::planet_true_anomaly_at_time(planet.id, -(1000.0 + 0.25) * period);
         assert(angle_close(negative_quarter_reference, negative_quarter_large, 1e-9));
 
+        // 中文说明：验证任意时刻真近点角落在 [0,2pi)，且 orbit_F 相位与 Kepler 线性推进一致（模周期）。
         for (const double time : {0.0, 0.1 * period, 0.5 * period, -0.3 * period}) {
             const double dt_reduced = std::remainder(time, period);
             const double orbit_scale = std::sqrt(
@@ -73,6 +77,7 @@ int main() {
         }
     }
 
+    // 中文说明：验证地球平均角速度与轨道周期数量级合理（约 1 年）。
     const double earth_mean_motion = planet_params::planet_mean_motion(planet_params::PlanetId::Earth);
     assert(earth_mean_motion > 0.0);
     const double earth_period = planet_params::planet_orbital_period(planet_params::PlanetId::Earth);

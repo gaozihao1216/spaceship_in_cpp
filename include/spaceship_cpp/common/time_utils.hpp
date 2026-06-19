@@ -18,10 +18,13 @@ struct DateTimeUtc {
 constexpr const char* kJ2000EpochIso = "2000-01-01T12:00:00Z";
 constexpr double kJ2000JulianDate = 2451545.0;
 
+// UTC 日期时间 → J2000 秒偏移。
 double seconds_from_j2000(const DateTimeUtc& dt);
 
+// J2000 秒偏移 → UTC 日期时间。
 DateTimeUtc datetime_from_j2000_seconds(double seconds_since_j2000);
 
+// 校验 UTC 日期时间各字段合法性。
 bool is_valid_datetime_utc(const DateTimeUtc& dt);
 
 }  // namespace spaceship_cpp::common
