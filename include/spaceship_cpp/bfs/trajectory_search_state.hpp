@@ -12,15 +12,20 @@
 namespace spaceship_cpp::bfs {
 
 struct TrajectorySearchState {
+    // valid=false 表示该状态是占位或被过滤掉的无效节点。
     bool valid = false;
 
+    // 当前轨迹已经到达并准备继续飞掠/转移的行星。
     planet_params::PlanetId current_planet = planet_params::PlanetId::Mercury;
 
+    // 当前节点对应的绝对时间。
     double current_time = 0.0;
 
+    // 到达当前行星前的入射轨道参数。
     double incoming_e = 0.0;
     double incoming_theta = 0.0;
 
+    // 搜索深度和累计代价。
     int depth = 0;
 
     double accumulated_time_seconds = 0.0;
@@ -29,15 +34,18 @@ struct TrajectorySearchState {
 };
 
 struct TrajectorySearchEdge {
+    // 表示一次从 from_planet 到 to_planet 的转移边。
     bool valid = false;
 
     planet_params::PlanetId from_planet = planet_params::PlanetId::Mercury;
     planet_params::PlanetId to_planet = planet_params::PlanetId::Mercury;
 
+    // 边的时间信息。
     double departure_time = 0.0;
     double arrival_time = 0.0;
     double transfer_time_seconds = 0.0;
 
+    // 出射转移轨道参数。
     double outgoing_e = 0.0;
     double outgoing_p = 0.0;
     double outgoing_theta = 0.0;
@@ -45,6 +53,7 @@ struct TrajectorySearchEdge {
     double theta_prime = 0.0;
     double alpha = 0.0;
 
+    // 多圈分支和残差信息用于诊断这条边来自哪个数学分支。
     int transfer_revolution = 0;
     int target_revolution = 0;
 
@@ -56,6 +65,7 @@ struct TrajectorySearchEdge {
 };
 
 struct TrajectorySearchExpansionResult {
+    // 一次扩展是否成功，以及失败时的简短原因。
     bool ok = false;
     std::string error_message;
 
