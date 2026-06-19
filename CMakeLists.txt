@@ -36,5 +36,15 @@ add_executable(problem1_table_diagnostics
 )
 target_link_libraries(problem1_table_diagnostics PRIVATE spaceship_cpp)
 
+add_executable(performance_benchmark
+    apps/performance_benchmark.cpp
+)
+target_link_libraries(performance_benchmark PRIVATE spaceship_cpp)
+
+add_executable(problem1_profile
+    apps/problem1_profile.cpp
+)
+target_link_libraries(problem1_profile PRIVATE spaceship_cpp)
+
 enable_testing()
 add_subdirectory(tests)
