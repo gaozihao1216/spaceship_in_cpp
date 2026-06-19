@@ -41,6 +41,11 @@ add_executable(performance_benchmark
 )
 target_link_libraries(performance_benchmark PRIVATE spaceship_cpp)
 
+add_executable(problem1_scan_compare
+    apps/problem1_scan_compare.cpp
+)
+target_link_libraries(problem1_scan_compare PRIVATE spaceship_cpp)
+
 add_executable(problem1_profile
     apps/problem1_profile.cpp
 )

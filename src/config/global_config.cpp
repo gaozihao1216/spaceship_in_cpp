@@ -14,7 +14,7 @@ const GlobalConfig& global_config() {
         Problem1SolveDefaults{
             0,      // 默认不允许转移轨道额外绕日，先聚焦最直接的前向转移分支
             0,      // 默认不允许目标行星多绕额外圈数，先只看最近一次前向相遇
-            720,    // 单次 solve 中 phi 扫描 720 个点，约等于每 0.5 度采样一次
+            120,    // 单次 solve 中 phi 扫描 120 个点，约等于每 3 度采样一次
             1e-10,  // 二分求根的角度容差
             0.0,    // residual 绝对容差当前保持为 0
             80,     // 每个变号区间最多二分 80 次
@@ -41,7 +41,7 @@ const GlobalConfig& global_config() {
             0,      // 中等规模表也先不扩展目标轨道额外绕行分支
         },
         Problem1DiagnosticsDefaults{
-            720,    // 单次 solve diagnostics 默认使用 720 个 phi 扫描点
+            120,    // 单次 solve diagnostics 默认使用 120 个 phi 扫描点
             8,      // table diagnostics 默认使用 8 个 nu_A 点
             8,      // table diagnostics 默认使用 8 个 nu_B 点
             16,     // table diagnostics 默认使用 16 个 theta_A 点

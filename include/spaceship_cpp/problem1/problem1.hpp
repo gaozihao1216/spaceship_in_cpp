@@ -6,6 +6,7 @@
 
 #include "spaceship_cpp/planet_params/planet_params.hpp"
 
+#include <optional>
 #include <vector>
 
 namespace spaceship_cpp::problem1 {
@@ -96,6 +97,100 @@ struct Problem1SolveInput {
     double max_candidate_relative_residual = 1e-6;
 };
 
+// residual(phi) 在区间 [L,R] 上求极值时，三分法要找极小还是极大。
+enum class Problem1ResidualExtremumKind {
+    Minimum,
+    Maximum,
+};
+
+// 区间细化结果：记录收敛到的 phi、残差结果，以及迭代次数与括号宽度。
+struct Problem1PhiRefinementResult {
+    bool success = false;
+    int iterations_used = 0;
+    double phi = 0.0;
+    Problem1ResidualResult residual_result;
+    double bracket_width = 0.0;
+};
+
+// 用两侧样本对中心点做中心差分，估计 df/dphi。
+double estimate_problem1_residual_derivative_central(
+    double previous_phi,
+    double previous_residual,
+    double next_phi,
+    double next_residual
+);
+
+// 用区间左端点及其右邻点做前向差分，估计左端点处 df/dphi。
+double estimate_problem1_residual_derivative_at_left_endpoint(
+    double left_phi,
+    double left_residual,
+    double right_phi,
+    double right_residual
+);
+
+// 用区间左端点及其右邻点做后向差分，估计右端点处 df/dphi。
+double estimate_problem1_residual_derivative_at_right_endpoint(
+    double left_phi,
+    double left_residual,
+    double right_phi,
+    double right_residual
+);
+
+// 由端点 (phi, f, f') 做 Hermite 型二次近似后，解析求区间内极值点。
+struct Problem1QuadraticExtremumEstimate {
+    double phi = 0.0;                 // 极值点位置，满足 left_phi < phi < right_phi
+    double predicted_residual = 0.0;    // 二次模型在极值点处的残差预测值
+    bool is_minimum = true;             // a>0 为极小，a<0 为极大
+};
+
+// 已知 [left_phi, right_phi] 两端残差与导数，求二次近似在区间内的极值点。
+// 极值落在开区间 (left_phi, right_phi) 外时返回 std::nullopt。
+std::optional<Problem1QuadraticExtremumEstimate>
+estimate_problem1_residual_quadratic_extremum_on_interval(
+    double left_phi,
+    double left_residual,
+    double left_derivative,
+    double right_phi,
+    double right_residual,
+    double right_derivative
+);
+
+// 同号区间内用二次极值做 fold/tangent 检测：几何门控（导数异号 + 内点极值）+
+// 机制门控（ρ<0.5 或 |f_pred|/S<1e-4）。通过时返回二次极值估计。
+std::optional<Problem1QuadraticExtremumEstimate> detect_problem1_fold_interval_by_quadratic_extremum(
+    double left_phi,
+    const Problem1ResidualResult& left_result,
+    double left_derivative,
+    double right_phi,
+    const Problem1ResidualResult& right_result,
+    double right_derivative
+);
+
+// 在端点残差已知的区间 [left_phi, right_phi] 上对 residual(phi) 二分求根。
+// 要求端点残差异号（或一端已为 0）；否则返回空。
+std::optional<Problem1PhiRefinementResult> bisect_problem1_residual_on_interval(
+    const Problem1SolveInput& input,
+    double left_phi,
+    const Problem1ResidualResult& left_result,
+    double right_phi,
+    const Problem1ResidualResult& right_result,
+    int transfer_revolution,
+    int target_revolution
+);
+
+// 在 [left_phi, right_phi] 上假设 residual(phi) 单峰，用三分法找极值点。
+std::optional<Problem1PhiRefinementResult> ternary_search_problem1_residual_extremum_on_interval(
+    const Problem1SolveInput& input,
+    double left_phi,
+    const Problem1ResidualResult& left_result,
+    double right_phi,
+    const Problem1ResidualResult& right_result,
+    Problem1ResidualExtremumKind extremum_kind,
+    int transfer_revolution,
+    int target_revolution,
+    int max_iterations = 48
+);
+
 struct Problem1Candidate {
     // 保留完整残差结果，方便调用方追踪几何和时间来源。
     Problem1ResidualResult residual_result;
@@ -138,7 +233,7 @@ double compute_transfer_p_from_departure(
     double xi1
 );
 
-// 扫描遇合角并对符号变化区间二分，返回所有通过残差过滤的候选转移轨道。
+// 120 等分粗扫：变号区间二分；同号区间经二次极值门控后三分并在极值两侧二分。
 std::vector<Problem1Candidate> solve_problem1(const Problem1SolveInput& input);
 
 }  // namespace spaceship_cpp::problem1

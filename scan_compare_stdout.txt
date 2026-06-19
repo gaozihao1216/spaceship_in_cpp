@@ -1,0 +1,69 @@
+﻿Problem 1 scan compare (reference phi_scan_count=2880, current default=240)
+Correctness: each scan count vs reference root set (same k,q, angle within one fine step).
+Timed iterations per point: 12
+
+=== Earth -> Mars (k<=0, q<=0) ===
+reference phi_scan_count=2880, candidates=1, mean=0.71305 ms
+scan  step(deg)  mean_ms  speedup  candidates  matched  missed  extra
+  96    3.750    0.077   9.304x           1        1       0       0  OK
+ 120    3.000    0.062  11.513x           1        1       0       0  OK
+ 180    2.000    0.076   9.356x           1        1       0       0  OK
+ 240    1.500    0.090   7.891x           1        1       0       0  OK
+ 360    1.000    0.132   5.391x           1        1       0       0  OK
+ 720    0.500    0.255   2.797x           1        1       0       0  OK
+2880    0.125    0.717   0.994x           1        1       0       0  OK
+
+=== Earth -> Mars (k<=1, q<=1) ===
+reference phi_scan_count=2880, candidates=8, mean=2.534 ms
+scan  step(deg)  mean_ms  speedup  candidates  matched  missed  extra
+  96    3.750    0.229  11.071x           8        8       0       0  OK
+ 120    3.000    0.233  10.878x           8        8       0       0  OK
+ 180    2.000    0.289   8.780x           8        8       0       0  OK
+ 240    1.500    0.340   7.444x           8        8       0       0  OK
+ 360    1.000    0.490   5.168x           8        8       0       0  OK
+ 720    0.500    0.783   3.235x           8        8       0       0  OK
+2880    0.125    2.558   0.991x           8        8       0       0  OK
+
+=== Earth -> Venus (k<=0, q<=0) ===
+reference phi_scan_count=2880, candidates=1, mean=0.685 ms
+scan  step(deg)  mean_ms  speedup  candidates  matched  missed  extra
+  96    3.750    0.037  18.298x           1        1       0       0  OK
+ 120    3.000    0.061  11.285x           1        1       0       0  OK
+ 180    2.000    0.076   9.062x           1        1       0       0  OK
+ 240    1.500    0.089   7.722x           1        1       0       0  OK
+ 360    1.000    0.119   5.763x           1        1       0       0  OK
+ 720    0.500    0.186   3.692x           1        1       0       0  OK
+2880    0.125    0.699   0.981x           1        1       0       0  OK
+
+=== Earth -> Venus (k<=1, q<=1) ===
+reference phi_scan_count=2880, candidates=2, mean=2.572 ms
+scan  step(deg)  mean_ms  speedup  candidates  matched  missed  extra
+  96    3.750    0.112  22.901x           2        2       0       0  OK
+ 120    3.000    0.208  12.366x           2        2       0       0  OK
+ 180    2.000    0.253  10.156x           2        2       0       0  OK
+ 240    1.500    0.291   8.855x           2        2       0       0  OK
+ 360    1.000    0.393   6.546x           2        2       0       0  OK
+ 720    0.500    0.654   3.935x           2        2       0       0  OK
+2880    0.125    2.636   0.976x           2        2       0       0  OK
+
+=== Earth -> Mercury (k<=0, q<=0) ===
+reference phi_scan_count=2880, candidates=1, mean=1.186 ms
+scan  step(deg)  mean_ms  speedup  candidates  matched  missed  extra
+  96    3.750    0.056  21.163x           1        1       0       0  OK
+ 120    3.000    0.065  18.280x           1        1       0       0  OK
+ 180    2.000    0.092  12.909x           1        1       0       0  OK
+ 240    1.500    0.113  10.473x           1        1       0       0  OK
+ 360    1.000    0.167   7.111x           1        1       0       0  OK
+ 720    0.500    0.313   3.784x           1        1       0       0  OK
+2880    0.125    1.054   1.125x           1        1       0       0  OK
+
+=== Earth -> Mercury (k<=1, q<=1) ===
+reference phi_scan_count=2880, candidates=1, mean=4.206 ms
+scan  step(deg)  mean_ms  speedup  candidates  matched  missed  extra
+  96    3.750    0.178  23.604x           1        1       0       0  OK
+ 120    3.000    0.213  19.787x           1        1       0       0  OK
+ 180    2.000    0.338  12.457x           1        1       0       0  OK
+ 240    1.500    0.379  11.090x           1        1       0       0  OK
+ 360    1.000    0.598   7.029x           1        1       0       0  OK
+ 720    0.500    1.096   3.838x           1        1       0       0  OK
+2880    0.125    4.231   0.994x           1        1       0       0  OK
