@@ -201,8 +201,8 @@ Problem1TableCell evaluate_problem1_table_cell_for_planets(
 
 class Problem1Table {
 public:
-    // 当前实现仍是 endpoint-table / transfer-time-table 方向的实验性中间产物。
-    // 长期目标应迁移到 root-solution-table: Table(nu_A_depart, nu_B_depart, theta_A) -> sorted solutions.
+    // 当前实现是 endpoint-table / transfer-time-table 方向的实验性中间产物。
+    // 它只保留几何和飞行时间分支查询，不再承担预计算根表职责。
     explicit Problem1Table(Problem1TableConfig config);
 
     const Problem1TableConfig& config() const;

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "spaceship_cpp/planet_params/planet_params.hpp"
-#include "spaceship_cpp/problem2/problem2_gravity_assist_solver.hpp"
 
 #include <string>
 #include <vector>
@@ -48,7 +47,6 @@ struct TrajectorySearchEdge {
     double slingshot_residual = 0.0;
     double problem1_residual_seconds = 0.0;
 
-    problem2::Problem2ResidualSource residual_source = problem2::Problem2ResidualSource::Strict;
     bool boundary_ambiguous = false;
     bool origin_was_topology_change = false;
 };
@@ -59,7 +57,6 @@ struct TrajectorySearchExpansionResult {
 
     std::vector<TrajectorySearchEdge> edges;
     std::vector<TrajectorySearchState> next_states;
-    problem2::Problem2GravityAssistSolverProfile problem2_solver_profile;
 };
 
 }  // namespace spaceship_cpp::bfs
