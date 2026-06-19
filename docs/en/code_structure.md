@@ -51,20 +51,15 @@ This document describes the current source layout after removing the root-table 
 
 ## Tests
 
-- `tests/CMakeLists.txt`: Registers only tests that match the current non-root-table code path.
-- `tests/test_build.cpp`: Basic build/link smoke test.
-- `tests/test_global_config.cpp`: Global config checks.
-- `tests/test_orbit_time_integral.cpp`: Orbit time integral checks.
-- `tests/test_orbit_velocity_helpers.cpp`: Orbit velocity helper checks.
-- `tests/test_planet_params.cpp`: Planet parameter checks.
-- `tests/test_planet_position.cpp`: Planet state-at-time checks.
-- `tests/test_problem1_residual.cpp`: Problem 1 residual checks.
-- `tests/test_problem1_solve.cpp`: Direct Problem 1 solver checks.
-- `tests/test_problem1_table.cpp`: Endpoint table checks.
-- `tests/test_problem1_table_diagnostics.cpp`: Problem 1 table diagnostics checks.
-- `tests/test_problem1_table_theory.cpp`: Problem 1 table theory checks.
-- `tests/test_problem2_slingshot_equations.cpp`: Problem 2 slingshot equation checks.
-- `tests/test_time_utils.cpp`: Time utility checks.
+Tests are grouped under `tests/` by the module or concern they verify (see `tests/README.md`):
+
+- `tests/CMakeLists.txt`: Registers all test targets via subdirectories.
+- `tests/common/`: Build smoke test, time utilities, orbit time integral (`orbit_math`).
+- `tests/config/`: Global default configuration.
+- `tests/planet_params/`: Planet parameter tables and state-at-time queries.
+- `tests/problem1/`: Residual evaluation, direct solver, endpoint table, table theory, table diagnostics.
+- `tests/problem2/`: Slingshot residual equations.
+- `tests/trajectory/`: Orbit velocity helpers.
 
 ## Removed Root-Table Path
 

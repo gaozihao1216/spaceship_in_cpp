@@ -1,0 +1,1 @@
+add_spaceship_test(test_problem2_slingshot_equations test_problem2_slingshot_equations.cpp)

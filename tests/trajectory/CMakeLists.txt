@@ -1,0 +1,1 @@
+add_spaceship_test(test_orbit_velocity_helpers test_orbit_velocity_helpers.cpp)

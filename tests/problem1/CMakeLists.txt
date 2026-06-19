@@ -1,0 +1,5 @@
+add_spaceship_test(test_problem1_residual test_problem1_residual.cpp)
+add_spaceship_test(test_problem1_solve test_problem1_solve.cpp)
+add_spaceship_test(test_problem1_table test_problem1_table.cpp)
+add_spaceship_test(test_problem1_table_theory test_problem1_table_theory.cpp)
+add_spaceship_test(test_problem1_table_diagnostics test_problem1_table_diagnostics.cpp)

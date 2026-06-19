@@ -51,20 +51,15 @@
 
 ## 测试（`tests/`）
 
-- `tests/CMakeLists.txt`：注册与当前非根表代码路径匹配的测试目标。
-- `tests/test_build.cpp`：基础构建/链接冒烟测试。
-- `tests/test_global_config.cpp`：全局配置检查。
-- `tests/test_orbit_time_integral.cpp`：轨道时间积分检查。
-- `tests/test_orbit_velocity_helpers.cpp`：轨道速度辅助函数检查。
-- `tests/test_planet_params.cpp`：行星参数检查。
-- `tests/test_planet_position.cpp`：行星指定时刻状态检查。
-- `tests/test_problem1_residual.cpp`：Problem 1 残差函数检查。
-- `tests/test_problem1_solve.cpp`：Problem 1 直接求解器检查。
-- `tests/test_problem1_table.cpp`：端点表格检查。
-- `tests/test_problem1_table_diagnostics.cpp`：Problem 1 表格诊断检查。
-- `tests/test_problem1_table_theory.cpp`：Problem 1 表格理论性质检查。
-- `tests/test_problem2_slingshot_equations.cpp`：Problem 2 弹弓方程检查。
-- `tests/test_time_utils.cpp`：时间工具检查。
+测试按所验证的模块/主题分子目录存放（详见 `tests/README.md`）：
+
+- `tests/CMakeLists.txt`：通过子目录注册全部测试目标。
+- `tests/common/`：构建冒烟测试、时间工具、轨道时间积分（`orbit_math`）。
+- `tests/config/`：全局默认配置。
+- `tests/planet_params/`：行星参数表与指定时刻状态查询。
+- `tests/problem1/`：残差评估、直接求解器、端点表格、表格理论、表格诊断。
+- `tests/problem2/`：弹弓残差方程。
+- `tests/trajectory/`：轨道速度辅助函数。
 
 ## 已移除的根表路径
 

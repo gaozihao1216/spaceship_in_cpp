@@ -1,0 +1,2 @@
+add_spaceship_test(test_planet_params test_planet_params.cpp)
+add_spaceship_test(test_planet_position test_planet_position.cpp)

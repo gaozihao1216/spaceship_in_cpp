@@ -1,0 +1,3 @@
+add_spaceship_test(test_build test_build.cpp)
+add_spaceship_test(test_time_utils test_time_utils.cpp)
+add_spaceship_test(test_orbit_time_integral test_orbit_time_integral.cpp)

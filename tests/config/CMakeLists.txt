@@ -1,0 +1,1 @@
+add_spaceship_test(test_global_config test_global_config.cpp)
