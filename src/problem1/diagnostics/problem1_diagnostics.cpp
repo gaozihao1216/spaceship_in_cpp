@@ -1,3 +1,7 @@
+/*
+ * 文件作用：实现 Problem 1 诊断统计工具。
+ * 主要工作：对直接求解和表格分支进行采样、汇总和一致性检查。
+ */
 #include "spaceship_cpp/problem1/problem1_diagnostics.hpp"
 
 #include "spaceship_cpp/common/common.hpp"

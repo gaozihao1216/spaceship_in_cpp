@@ -1,3 +1,7 @@
+/*
+ * 文件作用：声明 Problem 1 诊断辅助接口。
+ * 主要工作：汇总直接求解和表格采样结果，生成用于分析的统计数据。
+ */
 #pragma once
 
 #include "spaceship_cpp/problem1/problem1.hpp"

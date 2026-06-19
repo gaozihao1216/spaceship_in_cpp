@@ -1,3 +1,7 @@
+/*
+ * 文件作用：实现全局默认配置。
+ * 主要工作：集中返回默认行星、Problem 1 扫描参数和诊断用配置值。
+ */
 #include "spaceship_cpp/config/global_config.hpp"
 
 #include "spaceship_cpp/common/common.hpp"

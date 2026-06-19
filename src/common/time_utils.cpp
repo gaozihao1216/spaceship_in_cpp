@@ -1,3 +1,7 @@
+/*
+ * 文件作用：实现时间单位转换工具。
+ * 主要工作：提供天数与秒数之间的转换，并统一内部时间尺度处理。
+ */
 #include "spaceship_cpp/common/time_utils.hpp"
 
 #include "spaceship_cpp/common/common.hpp"

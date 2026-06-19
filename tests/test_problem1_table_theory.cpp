@@ -1,3 +1,7 @@
+/*
+ * 文件作用：测试 Problem 1 表格理论约束。
+ * 主要工作：检查表格几何、时间分支和有效性标记是否符合预期关系。
+ */
 #include "spaceship_cpp/common/common.hpp"
 #include "spaceship_cpp/planet_params/planet_params.hpp"
 #include "spaceship_cpp/problem1/problem1_table.hpp"

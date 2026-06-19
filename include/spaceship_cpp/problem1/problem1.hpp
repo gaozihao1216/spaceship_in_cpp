@@ -1,3 +1,7 @@
+/*
+ * 文件作用：声明 Problem 1 的直接残差评估和求解接口。
+ * 主要工作：定义输入、残差结果、候选解，并暴露扫描加二分细化的求解函数。
+ */
 #pragma once
 
 #include "spaceship_cpp/planet_params/planet_params.hpp"

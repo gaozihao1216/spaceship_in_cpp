@@ -1,3 +1,7 @@
+/*
+ * 文件作用：测试 Problem 1 残差评估。
+ * 主要工作：检查有效输入、非法分支和轨道几何边界下的残差状态。
+ */
 #include "spaceship_cpp/common/common.hpp"
 #include "spaceship_cpp/problem1/problem1.hpp"
 

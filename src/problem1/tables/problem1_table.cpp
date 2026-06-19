@@ -1,3 +1,7 @@
+/*
+ * 文件作用：实现 Problem 1 endpoint transfer-time table。
+ * 主要工作：生成表格单元几何、计算飞行时间分支，并提供最近网格和插值查询。
+ */
 #include "spaceship_cpp/problem1/problem1_table.hpp"
 
 #include "spaceship_cpp/common/common.hpp"

@@ -1,3 +1,7 @@
+/*
+ * 文件作用：定义轨迹搜索使用的基础状态和边数据结构。
+ * 主要工作：保存当前行星、时间、转移轨道参数和搜索扩展结果。
+ */
 #pragma once
 
 #include "spaceship_cpp/planet_params/planet_params.hpp"

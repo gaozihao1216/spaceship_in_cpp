@@ -1,3 +1,7 @@
+/*
+ * 文件作用：实现轨道速度和行星相对速度计算。
+ * 主要工作：计算太阳中心速度、行星速度以及发射/到达时的超速速度。
+ */
 #include "spaceship_cpp/trajectory/orbit_velocity.hpp"
 
 #include "spaceship_cpp/common/common.hpp"

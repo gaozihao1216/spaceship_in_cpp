@@ -1,3 +1,7 @@
+/*
+ * 文件作用：运行 Problem 1 直接求解器的命令行诊断程序。
+ * 主要工作：读取全局配置、调用残差/求解接口，并输出候选转移轨道的诊断信息。
+ */
 #include "spaceship_cpp/common/common.hpp"
 #include "spaceship_cpp/config/global_config.hpp"
 #include "spaceship_cpp/problem1/problem1.hpp"

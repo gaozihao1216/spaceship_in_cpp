@@ -1,3 +1,7 @@
+/*
+ * 文件作用：基础构建和链接冒烟测试。
+ * 主要工作：验证公共常量和基础工具能被测试程序正常包含与使用。
+ */
 #include "spaceship_cpp/common/common.hpp"
 
 #include <cassert>

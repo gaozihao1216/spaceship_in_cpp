@@ -1,3 +1,7 @@
+/*
+ * 文件作用：实现行星参数表和行星状态计算。
+ * 主要工作：保存太阳系与行星轨道常量，并按时间求解行星半径、真近点角和全局角。
+ */
 #include "spaceship_cpp/planet_params/planet_params.hpp"
 
 #include "spaceship_cpp/common/common.hpp"

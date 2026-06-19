@@ -1,3 +1,7 @@
+/*
+ * 文件作用：实现 Problem 2 飞掠弹弓残差方程。
+ * 主要工作：根据入射轨道、出射方向和目标几何计算外向轨道与弹弓约束残差。
+ */
 #include "spaceship_cpp/problem2/problem2_slingshot.hpp"
 
 #include "spaceship_cpp/common/common.hpp"

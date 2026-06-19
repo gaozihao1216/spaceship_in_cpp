@@ -1,3 +1,7 @@
+/*
+ * 文件作用：运行 Problem 1 endpoint transfer-time table 的命令行诊断程序。
+ * 主要工作：构造表格配置、采样表格单元，并输出几何和飞行时间分支统计。
+ */
 #include "spaceship_cpp/common/common.hpp"
 #include "spaceship_cpp/config/global_config.hpp"
 #include "spaceship_cpp/planet_params/planet_params.hpp"

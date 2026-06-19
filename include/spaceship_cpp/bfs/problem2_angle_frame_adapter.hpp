@@ -1,3 +1,7 @@
+/*
+ * 文件作用：声明 BFS 与 Problem 2 之间的角度坐标系适配接口。
+ * 主要工作：在全局近日点角和飞掠行星局部角之间做双向转换。
+ */
 #pragma once
 
 #include "spaceship_cpp/planet_params/planet_params.hpp"

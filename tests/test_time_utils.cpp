@@ -1,3 +1,7 @@
+/*
+ * 文件作用：测试时间转换工具。
+ * 主要工作：验证天与秒之间的转换精度和符号处理。
+ */
 #include "spaceship_cpp/common/time_utils.hpp"
 
 #include <cassert>

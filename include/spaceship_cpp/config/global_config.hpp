@@ -1,3 +1,7 @@
+/*
+ * 文件作用：声明全局默认配置。
+ * 主要工作：集中提供 Problem 1、行星范围和诊断程序使用的默认参数。
+ */
 #pragma once
 
 #include "spaceship_cpp/planet_params/planet_params.hpp"

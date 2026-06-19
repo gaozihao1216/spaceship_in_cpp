@@ -1,3 +1,7 @@
+/*
+ * 文件作用：测试全局默认配置。
+ * 主要工作：检查默认行星、Problem 1 参数和表格配置是否满足基本有效性。
+ */
 #include "spaceship_cpp/common/common.hpp"
 #include "spaceship_cpp/config/global_config.hpp"
 #include "spaceship_cpp/planet_params/planet_params.hpp"

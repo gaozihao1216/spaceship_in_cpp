@@ -1,3 +1,7 @@
+/*
+ * 文件作用：测试行星参数表。
+ * 主要工作：检查行星编号、名称、轨道参数和太阳系物理常量的有效性。
+ */
 #include "spaceship_cpp/planet_params/planet_params.hpp"
 
 #include <cassert>

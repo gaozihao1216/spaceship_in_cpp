@@ -1,3 +1,7 @@
+/*
+ * 文件作用：测试 Problem 1 轨道时间积分工具。
+ * 主要工作：覆盖椭圆轨道时间积分的方向、周期和多圈分支行为。
+ */
 #include "spaceship_cpp/common/common.hpp"
 #include "spaceship_cpp/problem1/orbit_time_integral.hpp"
 

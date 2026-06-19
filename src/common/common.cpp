@@ -1,3 +1,7 @@
+/*
+ * 文件作用：实现项目通用数学工具。
+ * 主要工作：提供角度归一化、数值判断和异常角辅助函数的具体实现。
+ */
 #include "spaceship_cpp/common/common.hpp"
 
 namespace spaceship_cpp::common {

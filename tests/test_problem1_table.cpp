@@ -1,3 +1,7 @@
+/*
+ * 文件作用：测试 Problem 1 endpoint transfer-time table。
+ * 主要工作：验证表格构造、单元查询、分支查询和基础插值可行性。
+ */
 #include "spaceship_cpp/common/common.hpp"
 #include "spaceship_cpp/planet_params/planet_params.hpp"
 #include "spaceship_cpp/problem1/problem1.hpp"

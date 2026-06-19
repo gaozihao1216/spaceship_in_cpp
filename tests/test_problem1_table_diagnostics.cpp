@@ -1,3 +1,7 @@
+/*
+ * 文件作用：测试 Problem 1 表格诊断工具。
+ * 主要工作：验证诊断采样、统计汇总和直接求解对照流程可以正常运行。
+ */
 #include "spaceship_cpp/common/common.hpp"
 #include "spaceship_cpp/planet_params/planet_params.hpp"
 #include "spaceship_cpp/problem1/problem1_diagnostics.hpp"

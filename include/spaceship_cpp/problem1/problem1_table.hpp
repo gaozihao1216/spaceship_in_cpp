@@ -1,3 +1,7 @@
+/*
+ * 文件作用：声明 Problem 1 endpoint transfer-time table 数据结构和查询接口。
+ * 主要工作：描述表格元数据、单元几何、飞行时间分支和插值可行性检查。
+ */
 #pragma once
 
 #include "spaceship_cpp/planet_params/planet_params.hpp"

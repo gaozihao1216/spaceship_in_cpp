@@ -1,3 +1,7 @@
+/*
+ * 文件作用：声明时间单位转换工具。
+ * 主要工作：在天、秒以及 J2000 秒偏移等内部时间表示之间转换。
+ */
 #pragma once
 
 namespace spaceship_cpp::common {

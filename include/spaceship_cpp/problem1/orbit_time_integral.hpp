@@ -1,3 +1,7 @@
+/*
+ * 文件作用：声明 Problem 1 使用的轨道飞行时间积分辅助函数。
+ * 主要工作：根据轨道形态和异常角差计算无量纲飞行时间。
+ */
 #pragma once
 
 #include "spaceship_cpp/common/orbit_math.hpp"

@@ -1,3 +1,7 @@
+/*
+ * 文件作用：声明物理飞掠可行性计算接口。
+ * 主要工作：根据入射/出射超速速度、转角和近心距约束判断飞掠是否可行。
+ */
 #pragma once
 
 #include "spaceship_cpp/planet_params/planet_params.hpp"

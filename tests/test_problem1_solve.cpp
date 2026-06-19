@@ -1,3 +1,7 @@
+/*
+ * 文件作用：测试 Problem 1 直接求解器。
+ * 主要工作：验证扫描加二分细化能产出有效候选解并满足残差阈值。
+ */
 #include "spaceship_cpp/common/common.hpp"
 #include "spaceship_cpp/problem1/problem1.hpp"
 

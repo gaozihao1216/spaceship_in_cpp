@@ -1,3 +1,7 @@
+/*
+ * 文件作用：测试行星随时间的位置计算。
+ * 主要工作：验证 J2000 附近的半径、真近点角和全局角归一化行为。
+ */
 #include "spaceship_cpp/common/common.hpp"
 #include "spaceship_cpp/common/orbit_math.hpp"
 #include "spaceship_cpp/planet_params/planet_params.hpp"

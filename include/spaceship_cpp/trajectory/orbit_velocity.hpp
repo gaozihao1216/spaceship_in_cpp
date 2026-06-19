@@ -1,3 +1,7 @@
+/*
+ * 文件作用：声明轨道速度和行星相对速度计算接口。
+ * 主要工作：计算转移轨道速度、行星速度、发射/到达超速速度等物理量。
+ */
 #pragma once
 
 #include "spaceship_cpp/planet_params/planet_params.hpp"

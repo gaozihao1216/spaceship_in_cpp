@@ -1,3 +1,7 @@
+/*
+ * 文件作用：测试 Problem 2 弹弓残差方程。
+ * 主要工作：验证轨道半径、外向轨道几何和残差函数的基本有效性。
+ */
 #include "spaceship_cpp/problem2/problem2_slingshot.hpp"
 
 #include <cassert>

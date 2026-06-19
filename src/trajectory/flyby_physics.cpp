@@ -1,3 +1,7 @@
+/*
+ * 文件作用：实现物理飞掠可行性判断。
+ * 主要工作：计算超速速度矢量、所需转角、最大可转角和近心距约束。
+ */
 #include "spaceship_cpp/trajectory/flyby_physics.hpp"
 
 #include "spaceship_cpp/common/common.hpp"

@@ -1,3 +1,7 @@
+/*
+ * 文件作用：实现 Problem 1 的直接残差评估和求解器。
+ * 主要工作：构造转移轨道残差，扫描遇合角根区间，并用二分法细化候选解。
+ */
 #include "spaceship_cpp/problem1/problem1.hpp"
 
 #include "spaceship_cpp/common/common.hpp"

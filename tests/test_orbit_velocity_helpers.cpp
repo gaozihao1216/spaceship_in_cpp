@@ -1,3 +1,7 @@
+/*
+ * 文件作用：测试轨道速度辅助函数。
+ * 主要工作：验证行星速度、转移轨道速度和相对速度计算的基本物理一致性。
+ */
 #include "spaceship_cpp/planet_params/planet_params.hpp"
 #include "spaceship_cpp/trajectory/orbit_velocity.hpp"
 

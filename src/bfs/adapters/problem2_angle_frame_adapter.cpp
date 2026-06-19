@@ -1,3 +1,7 @@
+/*
+ * 文件作用：实现 BFS 与 Problem 2 的角度坐标系适配。
+ * 主要工作：使用飞掠行星的轨道初始角，在全局角和局部角之间转换并归一化。
+ */
 #include "spaceship_cpp/bfs/problem2_angle_frame_adapter.hpp"
 
 #include "spaceship_cpp/common/common.hpp"

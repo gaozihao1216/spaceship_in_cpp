@@ -1,3 +1,7 @@
+/*
+ * 文件作用：实现轨道数学基础函数。
+ * 主要工作：计算轨道半径、异常角转换和不同轨道类型下的时间积分。
+ */
 #include "spaceship_cpp/common/orbit_math.hpp"
 
 #include "spaceship_cpp/common/common.hpp"
