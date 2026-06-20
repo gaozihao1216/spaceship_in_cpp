@@ -7,6 +7,8 @@
 #include "spaceship_cpp/planet_params/planet_params.hpp"
 #include "spaceship_cpp/problem1/problem1.hpp"
 #include "spaceship_cpp/problem1/problem1_table.hpp"
+#include "spaceship_cpp/problem2/problem2_theta_prime_scan.hpp"
+#include "spaceship_cpp/problem2/problem2_theta_prime_route_a.hpp"
 
 namespace spaceship_cpp::config {
 
@@ -39,11 +41,26 @@ struct Problem1DiagnosticsDefaults {
     double max_candidate_relative_residual;     // diagnostics 中候选解最大相对残差阈值
 };
 
+struct Problem2ThetaPrimeScanDefaults {
+    int theta_prime_count;                       // Problem 2 出射段 θ' 初扫离散点数，默认 64
+    double branch_phi_pairing_max_gap;           // 相邻 θ' 节点 branch 配对允许的最大 |Δφ|，单位 rad
+};
+
+struct Problem2RouteANewtonDefaults {
+    int max_iterations;                          // Route A Newton 最大迭代次数
+    double max_relative_residual;                // 收敛判据：相对 P1 残差阈值
+    double phi_tolerance;                        // φ 更新步长收敛阈值，单位 rad
+    double phi_derivative_step;                  // Newton 中 df/dφ 中心差分步长，单位 rad
+    bool reject_on_residual_increase;            // 残差增大时是否判定为发散
+};
+
 struct GlobalConfig {
     Problem1SolveDefaults problem1_solve;              // Problem1 单次求解默认参数
     Problem1TableDefaults problem1_table_smoke;        // Problem1 小规模建表默认参数，用于快速测试
     Problem1TableDefaults problem1_table_medium;       // Problem1 中等规模建表默认参数，用于后续较认真诊断
     Problem1DiagnosticsDefaults problem1_diagnostics;  // Problem1 diagnostics app 默认参数
+    Problem2ThetaPrimeScanDefaults problem2_theta_prime_scan;  // Problem2 θ' 初扫默认参数
+    Problem2RouteANewtonDefaults problem2_route_a_newton;      // Problem2 Route A Newton 默认参数
 };
 
 const GlobalConfig& global_config();
@@ -61,5 +78,18 @@ problem1::Problem1TableConfig make_problem1_table_config(
     planet_params::PlanetId target,
     const Problem1TableDefaults& defaults
 );  // 按统一默认参数构造有序行星对 3D 表配置，并把三个周期角维度离散数量转换为固定角步长 2pi / count
+
+problem2::Problem2ThetaPrimeScanConfig make_problem2_theta_prime_scan_config(
+    planet_params::PlanetId flyby_planet,
+    planet_params::PlanetId target_planet,
+    double flyby_time_seconds_since_j2000,
+    const Problem2ThetaPrimeScanDefaults& scan_defaults,
+    const Problem1SolveDefaults& problem1_defaults
+);  // 构造 Problem 2 θ' 初扫配置，并嵌入 Problem 1 求解默认参数
+
+problem2::Problem2RouteANewtonOptions make_problem2_route_a_newton_options(
+    const Problem2RouteANewtonDefaults& defaults,
+    const Problem1SolveDefaults& problem1_defaults
+);  // 构造 Route A Newton 选项，相对残差阈值与 Problem 1 默认保持一致
 
 }  // namespace spaceship_cpp::config

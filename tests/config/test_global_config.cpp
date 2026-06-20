@@ -39,6 +39,8 @@ int main() {
     assert(cfg.problem1_solve.phi_tolerance > 0.0);
     assert(cfg.problem1_solve.max_bisection_iterations > 0);
     assert(cfg.problem1_solve.max_candidate_relative_residual > 0.0);
+    assert(cfg.problem2_theta_prime_scan.theta_prime_count >= 3);
+    assert(cfg.problem2_theta_prime_scan.branch_phi_pairing_max_gap > 0.0);
 
     // 中文说明：验证 Problem 1 表格 smoke 默认配置的采样计数与圈数上限合法。
     assert(cfg.problem1_table_smoke.departure_true_anomaly_count > 0);
@@ -83,6 +85,21 @@ int main() {
             common::kTwoPi / static_cast<double>(cfg.problem1_table_smoke.transfer_theta_departure_count)));
         assert(table_config.max_transfer_revolution == cfg.problem1_table_smoke.max_transfer_revolution);
         assert(table_config.max_target_revolution == cfg.problem1_table_smoke.max_target_revolution);
+    }
+
+    {
+        const auto scan_config = config::make_problem2_theta_prime_scan_config(
+            planet_params::PlanetId::Mars,
+            planet_params::PlanetId::Earth,
+            100.0 * 86400.0,
+            cfg.problem2_theta_prime_scan,
+            cfg.problem1_solve);
+        assert(scan_config.flyby_planet == planet_params::PlanetId::Mars);
+        assert(scan_config.target_planet == planet_params::PlanetId::Earth);
+        assert(scan_config.theta_prime_count == cfg.problem2_theta_prime_scan.theta_prime_count);
+        assert(scan_config.branch_phi_pairing_max_gap ==
+            cfg.problem2_theta_prime_scan.branch_phi_pairing_max_gap);
+        assert(scan_config.problem1_solve.phi_scan_count == cfg.problem1_solve.phi_scan_count);
     }
 
     {

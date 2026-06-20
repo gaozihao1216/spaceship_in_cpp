@@ -18,6 +18,9 @@ add_library(spaceship_cpp STATIC
     src/problem1/tables/problem1_table.cpp
     src/problem2/problem2.cpp
     src/problem2/flyby/problem2_slingshot.cpp
+    src/problem2/flyby/problem2_flyby_constraint.cpp
+    src/problem2/flyby/problem2_theta_prime_scan.cpp
+    src/problem2/flyby/problem2_theta_prime_route_a.cpp
     src/trajectory/flyby_physics.cpp
     src/trajectory/orbit_velocity.cpp
     src/bfs/bfs.cpp

@@ -4,4 +4,7 @@
  */
 #pragma once
 
+#include "spaceship_cpp/problem2/problem2_flyby_constraint.hpp"
 #include "spaceship_cpp/problem2/problem2_slingshot.hpp"
+#include "spaceship_cpp/problem2/problem2_theta_prime_scan.hpp"
+#include "spaceship_cpp/problem2/problem2_theta_prime_route_a.hpp"
