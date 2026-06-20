@@ -197,6 +197,7 @@ Problem2ThetaPrimeScanConfig make_test_scan_config(
     const auto& defaults = spaceship_cpp::config::global_config();
     const Problem2ThetaPrimeScanDefaults scan_defaults{
         theta_prime_count,
+        defaults.problem1_solve.phi_scan_count,
         defaults.problem2_theta_prime_scan.branch_phi_pairing_max_gap,
     };
     return spaceship_cpp::config::make_problem2_theta_prime_scan_config(

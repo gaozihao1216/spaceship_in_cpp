@@ -33,6 +33,8 @@ struct Problem2ThetaPrimeNodeSnapshot {
     double theta_prime_local = 0.0;
     double theta_prime_global = 0.0;
     std::vector<Problem2OutgoingBranchSolution> solutions;
+    // solutions_by_k[k]：transfer_revolution == k 的全部解（初扫时直接分桶，避免事后重复搜索）。
+    std::vector<std::vector<Problem2OutgoingBranchSolution>> solutions_by_k;
 };
 
 struct Problem2ThetaPrimeScanConfig {
@@ -51,6 +53,7 @@ struct Problem2ThetaPrimeScanConfig {
 struct Problem2ThetaPrimeInitialScanResult {
     bool ok = false;
     std::string error_message;
+    int max_transfer_revolution = 0;
     std::vector<Problem2ThetaPrimeNodeSnapshot> nodes;
 };
 
@@ -105,6 +108,13 @@ Problem2ThetaPrimeNodeSnapshot evaluate_problem2_theta_prime_node(
     double theta_prime_local
 );
 
+// 与上式相同，但复用已计算的发射时刻行星状态（用于初扫批量评估）。
+Problem2ThetaPrimeNodeSnapshot evaluate_problem2_theta_prime_node(
+    const Problem2ThetaPrimeScanConfig& config,
+    double theta_prime_local,
+    const problem1::Problem1LaunchState& launch_state
+);
+
 // 完整初扫：默认 64 个 θ' 节点。
 Problem2ThetaPrimeInitialScanResult run_problem2_theta_prime_initial_scan(
     const Problem2ThetaPrimeScanConfig& config
@@ -113,6 +123,13 @@ Problem2ThetaPrimeInitialScanResult run_problem2_theta_prime_initial_scan(
 // 在初扫结果上为每条 branch 估计 dφ/dθ' 与 de/dθ'。
 void attach_problem2_theta_prime_solution_derivatives(
     std::vector<Problem2ThetaPrimeNodeSnapshot>& nodes,
+    double branch_phi_pairing_max_gap
+);
+
+// 在每个 k 层内独立配对并估计导数，再写回 solutions_by_k 与 solutions。
+void attach_problem2_theta_prime_solution_derivatives_by_k(
+    std::vector<Problem2ThetaPrimeNodeSnapshot>& nodes,
+    int max_transfer_revolution,
     double branch_phi_pairing_max_gap
 );
 

@@ -40,6 +40,7 @@ int main() {
     assert(cfg.problem1_solve.max_bisection_iterations > 0);
     assert(cfg.problem1_solve.max_candidate_relative_residual > 0.0);
     assert(cfg.problem2_theta_prime_scan.theta_prime_count >= 3);
+    assert(cfg.problem2_theta_prime_scan.phi_scan_count >= 3);
     assert(cfg.problem2_theta_prime_scan.branch_phi_pairing_max_gap > 0.0);
 
     // 中文说明：验证 Problem 1 表格 smoke 默认配置的采样计数与圈数上限合法。
@@ -99,7 +100,8 @@ int main() {
         assert(scan_config.theta_prime_count == cfg.problem2_theta_prime_scan.theta_prime_count);
         assert(scan_config.branch_phi_pairing_max_gap ==
             cfg.problem2_theta_prime_scan.branch_phi_pairing_max_gap);
-        assert(scan_config.problem1_solve.phi_scan_count == cfg.problem1_solve.phi_scan_count);
+        assert(scan_config.problem1_solve.phi_scan_count ==
+            cfg.problem2_theta_prime_scan.phi_scan_count);
     }
 
     {

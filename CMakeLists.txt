@@ -16,9 +16,10 @@ add_library(spaceship_cpp STATIC
     src/problem1/problem1.cpp
     src/problem1/diagnostics/problem1_diagnostics.cpp
     src/problem1/tables/problem1_table.cpp
-    src/problem2/problem2.cpp
     src/problem2/flyby/problem2_slingshot.cpp
     src/problem2/flyby/problem2_flyby_constraint.cpp
+    src/problem2/flyby/problem2_flyby_G_search.cpp
+    src/problem2/flyby/problem2_flyby_solve.cpp
     src/problem2/flyby/problem2_theta_prime_scan.cpp
     src/problem2/flyby/problem2_theta_prime_route_a.cpp
     src/trajectory/flyby_physics.cpp
@@ -28,6 +29,11 @@ add_library(spaceship_cpp STATIC
 )
 
 target_include_directories(spaceship_cpp PUBLIC include)
+
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(spaceship_cpp PUBLIC OpenMP::OpenMP_CXX)
+endif()
 
 add_executable(problem1_solve_diagnostics
     apps/problem1_solve_diagnostics.cpp

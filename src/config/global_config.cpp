@@ -49,6 +49,7 @@ const GlobalConfig& global_config() {
         },
         Problem2ThetaPrimeScanDefaults{
             64,     // Problem 2 出射段 θ' 初扫默认 64 个离散点
+            64,     // 初扫专用 phi 扫描 64 点（全精度 solve 仍为 120）；初扫只需发现 branch 拓扑
             0.75,   // branch 配对默认允许最大约 43° 的 φ 跳变
         },
         Problem2RouteANewtonDefaults{
@@ -128,6 +129,9 @@ problem2::Problem2ThetaPrimeScanConfig make_problem2_theta_prime_scan_config(
         flyby_time_seconds_since_j2000,
         0.0,
         problem1_defaults);
+    if (scan_defaults.phi_scan_count >= 3) {
+        config.problem1_solve.phi_scan_count = scan_defaults.phi_scan_count;
+    }
     return config;
 }
 
@@ -143,6 +147,34 @@ problem2::Problem2RouteANewtonOptions make_problem2_route_a_newton_options(
     options.phi_derivative_step = defaults.phi_derivative_step;
     options.reject_on_residual_increase = defaults.reject_on_residual_increase;
     return options;
+}
+
+problem2::Problem2FlybySolveConfig make_problem2_flyby_solve_config(
+    planet_params::PlanetId flyby_planet,
+    planet_params::PlanetId target_planet,
+    double flyby_time_seconds_since_j2000,
+    const Problem2ThetaPrimeScanDefaults& scan_defaults,
+    const Problem2RouteANewtonDefaults& route_a_defaults,
+    const Problem1SolveDefaults& problem1_defaults
+) {
+    problem2::Problem2FlybySolveConfig config{};
+    config.g_search_config.scan_config = make_problem2_theta_prime_scan_config(
+        flyby_planet,
+        target_planet,
+        flyby_time_seconds_since_j2000,
+        scan_defaults,
+        problem1_defaults);
+    config.g_search_config.route_a_newton_options = make_problem2_route_a_newton_options(
+        route_a_defaults,
+        problem1_defaults);
+    config.g_search_config.g_newton_options.max_iterations = route_a_defaults.max_iterations;
+    config.g_search_config.g_newton_options.G_tolerance = 1e-8;
+    config.g_search_config.g_newton_options.theta_prime_tolerance = 1e-10;
+    config.g_search_config.near_zero_G_threshold = 1e-4;
+    config.g_search_config.solution_theta_prime_tolerance = 1e-8;
+    config.g_search_config.theta_prime_tolerance = 1e-8;
+    config.g_search_config.max_recursion_depth = 32;
+    return config;
 }
 
 }  // namespace spaceship_cpp::config

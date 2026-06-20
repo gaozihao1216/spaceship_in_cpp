@@ -53,6 +53,26 @@ double compute_transfer_p_from_departure(double r1, double e_transfer, double xi
     return r1 * factor;
 }
 
+Problem1LaunchState compute_problem1_launch_state(
+    planet_params::PlanetId departure_planet,
+    planet_params::PlanetId target_planet,
+    double launch_time_seconds_since_j2000
+) {
+    const planet_params::PlanetParams& target =
+        planet_params::get_planet_params(target_planet);
+    const planet_params::PlanetState state1 =
+        planet_params::planet_state_at_time(departure_planet, launch_time_seconds_since_j2000);
+    return Problem1LaunchState{
+        state1.radius,
+        state1.theta_global,
+        planet_params::planet_true_anomaly_at_time(
+            target_planet, launch_time_seconds_since_j2000),
+        target.orbit.e,
+        target.orbit.p,
+        target.orbit.theta_0,
+    };
+}
+
 namespace {
 
 using spaceship_cpp::common::is_finite;
@@ -110,37 +130,7 @@ void validate_problem1_solve_input(const Problem1SolveInput& input) {
     }
 }
 
-// 发射时刻行星状态；与遇合角 phi 无关，可在 phi 扫描前一次性计算并复用。
-struct Problem1LaunchState {
-    double r1 = 0.0;
-    double lambda1 = 0.0;
-    double theta2_start = 0.0;
-    double target_e = 0.0;
-    double target_p = 0.0;
-    double target_theta_0 = 0.0;
-};
-
-Problem1LaunchState compute_problem1_launch_state(
-    planet_params::PlanetId departure_planet,
-    planet_params::PlanetId target_planet,
-    double launch_time_seconds_since_j2000
-) {
-    const planet_params::PlanetParams& target =
-        planet_params::get_planet_params(target_planet);
-    const planet_params::PlanetState state1 =
-        planet_params::planet_state_at_time(departure_planet, launch_time_seconds_since_j2000);
-    return Problem1LaunchState{
-        state1.radius,
-        state1.theta_global,
-        planet_params::planet_true_anomaly_at_time(
-            target_planet, launch_time_seconds_since_j2000),
-        target.orbit.e,
-        target.orbit.p,
-        target.orbit.theta_0,
-    };
-}
-
-Problem1ResidualResult evaluate_problem1_residual_with_launch_state(
+Problem1ResidualResult evaluate_problem1_residual_with_launch_state_impl(
     const Problem1ResidualInput& input,
     const Problem1LaunchState& launch
 ) {
@@ -479,7 +469,7 @@ std::optional<Problem1PhiRefinementResult> bisect_problem1_residual_on_interval_
     for (int iteration = 0; iteration < input.max_bisection_iterations; ++iteration) {
         iterations_used = iteration + 1;
         mid_phi = 0.5 * (current_left_phi + current_right_phi);
-        mid_result = evaluate_problem1_residual_with_launch_state(
+        mid_result = evaluate_problem1_residual_with_launch_state_impl(
             make_residual_input(input, mid_phi, transfer_revolution, target_revolution),
             launch_state);
         if (!is_success_with_finite_residual(mid_result)) {
@@ -584,10 +574,10 @@ std::optional<Problem1PhiRefinementResult> ternary_search_problem1_residual_extr
 
         const double m1_phi = current_left_phi + span / 3.0;
         const double m2_phi = current_right_phi - span / 3.0;
-        const Problem1ResidualResult m1_result = evaluate_problem1_residual_with_launch_state(
+        const Problem1ResidualResult m1_result = evaluate_problem1_residual_with_launch_state_impl(
             make_residual_input(input, m1_phi, transfer_revolution, target_revolution),
             launch_state);
-        const Problem1ResidualResult m2_result = evaluate_problem1_residual_with_launch_state(
+        const Problem1ResidualResult m2_result = evaluate_problem1_residual_with_launch_state_impl(
             make_residual_input(input, m2_phi, transfer_revolution, target_revolution),
             launch_state);
         if (!is_success_with_finite_residual(m1_result) || !is_success_with_finite_residual(m2_result)) {
@@ -604,7 +594,7 @@ std::optional<Problem1PhiRefinementResult> ternary_search_problem1_residual_extr
     }
 
     const double extremum_phi = 0.5 * (current_left_phi + current_right_phi);
-    const Problem1ResidualResult extremum_result = evaluate_problem1_residual_with_launch_state(
+    const Problem1ResidualResult extremum_result = evaluate_problem1_residual_with_launch_state_impl(
         make_residual_input(input, extremum_phi, transfer_revolution, target_revolution),
         launch_state);
     if (!is_success_with_finite_residual(extremum_result)) {
@@ -867,26 +857,10 @@ void process_phi_scan_interval(
     }
 }
 
-}  // namespace
-
-Problem1ResidualResult evaluate_problem1_residual(const Problem1ResidualInput& input) {
-    const Problem1LaunchState launch = compute_problem1_launch_state(
-        input.departure_planet,
-        input.target_planet,
-        input.launch_time_seconds_since_j2000);
-    return evaluate_problem1_residual_with_launch_state(input, launch);
-}
-
-// Problem 1 求解器：120 等分粗扫，变号区间二分；同号区间经二次极值门控后 fold 精修。
-// 枚举所有 (k,q) 多圈分支，返回通过残差过滤的候选转移轨道列表。
-std::vector<Problem1Candidate> solve_problem1(const Problem1SolveInput& input) {
-    validate_problem1_solve_input(input);
-
-    const Problem1LaunchState launch_state = compute_problem1_launch_state(
-        input.departure_planet,
-        input.target_planet,
-        input.launch_time_seconds_since_j2000);
-
+std::vector<Problem1Candidate> collect_problem1_candidates_with_launch_state(
+    const Problem1SolveInput& input,
+    const Problem1LaunchState& launch_state
+) {
     std::vector<Problem1Candidate> candidates;
     for (int transfer_revolution = 0; transfer_revolution <= input.max_transfer_revolution; ++transfer_revolution) {
         for (int target_revolution = 0; target_revolution <= input.max_target_revolution; ++target_revolution) {
@@ -896,7 +870,7 @@ std::vector<Problem1Candidate> solve_problem1(const Problem1SolveInput& input) {
             for (int i = 0; i < input.phi_scan_count; ++i) {
                 const double phi = static_cast<double>(i) * kTwoPi / static_cast<double>(input.phi_scan_count);
                 const Problem1ResidualResult result =
-                    evaluate_problem1_residual_with_launch_state(
+                    evaluate_problem1_residual_with_launch_state_impl(
                         make_residual_input(input, phi, transfer_revolution, target_revolution),
                         launch_state);
                 if (!is_success_with_finite_residual(result)) {
@@ -962,6 +936,44 @@ std::vector<Problem1Candidate> solve_problem1(const Problem1SolveInput& input) {
     });
 
     return candidates;
+}
+
+}  // namespace
+
+Problem1ResidualResult evaluate_problem1_residual_with_launch_state(
+    const Problem1ResidualInput& input,
+    const Problem1LaunchState& launch_state
+) {
+    return evaluate_problem1_residual_with_launch_state_impl(input, launch_state);
+}
+
+Problem1ResidualResult evaluate_problem1_residual(const Problem1ResidualInput& input) {
+    const Problem1LaunchState launch = compute_problem1_launch_state(
+        input.departure_planet,
+        input.target_planet,
+        input.launch_time_seconds_since_j2000);
+    return evaluate_problem1_residual_with_launch_state(input, launch);
+}
+
+std::vector<Problem1Candidate> solve_problem1_with_launch_state(
+    const Problem1SolveInput& input,
+    const Problem1LaunchState& launch_state
+) {
+    validate_problem1_solve_input(input);
+    return collect_problem1_candidates_with_launch_state(input, launch_state);
+}
+
+// Problem 1 求解器：120 等分粗扫，变号区间二分；同号区间经二次极值门控后 fold 精修。
+// 枚举所有 (k,q) 多圈分支，返回通过残差过滤的候选转移轨道列表。
+std::vector<Problem1Candidate> solve_problem1(const Problem1SolveInput& input) {
+    validate_problem1_solve_input(input);
+
+    const Problem1LaunchState launch_state = compute_problem1_launch_state(
+        input.departure_planet,
+        input.target_planet,
+        input.launch_time_seconds_since_j2000);
+
+    return collect_problem1_candidates_with_launch_state(input, launch_state);
 }
 
 double estimate_problem1_residual_derivative_central(

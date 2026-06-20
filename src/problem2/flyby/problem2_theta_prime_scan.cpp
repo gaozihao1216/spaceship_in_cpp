@@ -12,6 +12,10 @@
 #include <limits>
 #include <unordered_set>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 namespace spaceship_cpp::problem2 {
 namespace {
 
@@ -64,6 +68,54 @@ void sort_solutions_by_phi(std::vector<Problem2OutgoingBranchSolution>& solution
             }
             return left.encounter_global_angle < right.encounter_global_angle;
         });
+}
+
+void bucket_solutions_by_transfer_revolution(
+    const std::vector<Problem2OutgoingBranchSolution>& solutions,
+    int max_transfer_revolution,
+    std::vector<std::vector<Problem2OutgoingBranchSolution>>& solutions_by_k
+) {
+    solutions_by_k.clear();
+    if (max_transfer_revolution < 0) {
+        return;
+    }
+    solutions_by_k.resize(static_cast<std::size_t>(max_transfer_revolution) + 1U);
+    for (const auto& solution : solutions) {
+        if (solution.transfer_revolution < 0 || solution.transfer_revolution > max_transfer_revolution) {
+            continue;
+        }
+        solutions_by_k[static_cast<std::size_t>(solution.transfer_revolution)].push_back(solution);
+    }
+    for (auto& layer : solutions_by_k) {
+        sort_solutions_by_phi(layer);
+    }
+}
+
+void merge_flat_solutions_from_k_layers(Problem2ThetaPrimeNodeSnapshot& snapshot) {
+    snapshot.solutions.clear();
+    for (const auto& layer : snapshot.solutions_by_k) {
+        snapshot.solutions.insert(snapshot.solutions.end(), layer.begin(), layer.end());
+    }
+    sort_solutions_by_phi(snapshot.solutions);
+}
+
+bool same_outgoing_branch_identity(
+    const Problem2OutgoingBranchSolution& left,
+    const Problem2OutgoingBranchSolution& right
+) {
+    return left.transfer_revolution == right.transfer_revolution &&
+        left.target_revolution == right.target_revolution &&
+        left.encounter_global_angle == right.encounter_global_angle;
+}
+
+void copy_solution_derivatives(
+    const Problem2OutgoingBranchSolution& source,
+    Problem2OutgoingBranchSolution& destination
+) {
+    destination.dphi_dtheta_prime = source.dphi_dtheta_prime;
+    destination.de_dtheta_prime = source.de_dtheta_prime;
+    destination.has_dphi_dtheta_prime = source.has_dphi_dtheta_prime;
+    destination.has_de_dtheta_prime = source.has_de_dtheta_prime;
 }
 
 }  // namespace
@@ -192,7 +244,8 @@ std::vector<Problem2OutgoingBranchPair> pair_outgoing_branch_solutions_by_phi(
 
 Problem2ThetaPrimeNodeSnapshot evaluate_problem2_theta_prime_node(
     const Problem2ThetaPrimeScanConfig& config,
-    double theta_prime_local
+    double theta_prime_local,
+    const problem1::Problem1LaunchState& launch_state
 ) {
     Problem2ThetaPrimeNodeSnapshot snapshot{};
     snapshot.theta_prime_local = theta_prime_local;
@@ -205,7 +258,8 @@ Problem2ThetaPrimeNodeSnapshot evaluate_problem2_theta_prime_node(
     solve_input.launch_time_seconds_since_j2000 = config.flyby_time_seconds_since_j2000;
     solve_input.transfer_perihelion_angle = snapshot.theta_prime_global;
 
-    const std::vector<Problem1Candidate> candidates = problem1::solve_problem1(solve_input);
+    const std::vector<Problem1Candidate> candidates =
+        problem1::solve_problem1_with_launch_state(solve_input, launch_state);
     snapshot.solutions.reserve(candidates.size());
     for (const auto& candidate : candidates) {
         if (candidate.residual_result.status != Problem1ResidualStatus::Success ||
@@ -217,7 +271,22 @@ Problem2ThetaPrimeNodeSnapshot evaluate_problem2_theta_prime_node(
         snapshot.solutions.push_back(make_branch_solution_from_candidate(candidate));
     }
     sort_solutions_by_phi(snapshot.solutions);
+    bucket_solutions_by_transfer_revolution(
+        snapshot.solutions,
+        config.problem1_solve.max_transfer_revolution,
+        snapshot.solutions_by_k);
     return snapshot;
+}
+
+Problem2ThetaPrimeNodeSnapshot evaluate_problem2_theta_prime_node(
+    const Problem2ThetaPrimeScanConfig& config,
+    double theta_prime_local
+) {
+    const problem1::Problem1LaunchState launch_state = problem1::compute_problem1_launch_state(
+        config.flyby_planet,
+        config.target_planet,
+        config.flyby_time_seconds_since_j2000);
+    return evaluate_problem2_theta_prime_node(config, theta_prime_local, launch_state);
 }
 
 Problem2ThetaPrimeInitialScanResult run_problem2_theta_prime_initial_scan(
@@ -238,13 +307,23 @@ Problem2ThetaPrimeInitialScanResult run_problem2_theta_prime_initial_scan(
     }
 
     const std::vector<double> grid = build_uniform_theta_prime_local_grid(config.theta_prime_count);
-    result.nodes.reserve(grid.size());
-    for (const double theta_prime_local : grid) {
-        result.nodes.push_back(evaluate_problem2_theta_prime_node(config, theta_prime_local));
+    const problem1::Problem1LaunchState launch_state = problem1::compute_problem1_launch_state(
+        config.flyby_planet,
+        config.target_planet,
+        config.flyby_time_seconds_since_j2000);
+    result.max_transfer_revolution = config.problem1_solve.max_transfer_revolution;
+    result.nodes.resize(grid.size());
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static)
+#endif
+    for (int grid_index = 0; grid_index < static_cast<int>(grid.size()); ++grid_index) {
+        result.nodes[static_cast<std::size_t>(grid_index)] =
+            evaluate_problem2_theta_prime_node(config, grid[static_cast<std::size_t>(grid_index)], launch_state);
     }
 
-    attach_problem2_theta_prime_solution_derivatives(
+    attach_problem2_theta_prime_solution_derivatives_by_k(
         result.nodes,
+        result.max_transfer_revolution,
         config.branch_phi_pairing_max_gap);
     result.ok = true;
     return result;
@@ -362,6 +441,53 @@ void attach_problem2_theta_prime_solution_derivatives(
                 }
             }
         }
+    }
+}
+
+void attach_problem2_theta_prime_solution_derivatives_by_k(
+    std::vector<Problem2ThetaPrimeNodeSnapshot>& nodes,
+    int max_transfer_revolution,
+    double branch_phi_pairing_max_gap
+) {
+    if (nodes.empty() || max_transfer_revolution < 0 || !(branch_phi_pairing_max_gap > 0.0)) {
+        return;
+    }
+
+    for (int transfer_revolution = 0; transfer_revolution <= max_transfer_revolution; ++transfer_revolution) {
+        std::vector<Problem2ThetaPrimeNodeSnapshot> layer_nodes;
+        layer_nodes.reserve(nodes.size());
+        for (const auto& node : nodes) {
+            Problem2ThetaPrimeNodeSnapshot layer_node{};
+            layer_node.theta_prime_local = node.theta_prime_local;
+            layer_node.theta_prime_global = node.theta_prime_global;
+            if (transfer_revolution < static_cast<int>(node.solutions_by_k.size())) {
+                layer_node.solutions = node.solutions_by_k[static_cast<std::size_t>(transfer_revolution)];
+            }
+            layer_nodes.push_back(std::move(layer_node));
+        }
+
+        attach_problem2_theta_prime_solution_derivatives(layer_nodes, branch_phi_pairing_max_gap);
+
+        for (std::size_t node_index = 0; node_index < nodes.size(); ++node_index) {
+            auto& node = nodes[node_index];
+            if (transfer_revolution >= static_cast<int>(node.solutions_by_k.size())) {
+                continue;
+            }
+            auto& layer_solutions = node.solutions_by_k[static_cast<std::size_t>(transfer_revolution)];
+            const auto& derived_layer = layer_nodes[node_index].solutions;
+            for (auto& solution : layer_solutions) {
+                for (const auto& derived_solution : derived_layer) {
+                    if (same_outgoing_branch_identity(solution, derived_solution)) {
+                        copy_solution_derivatives(derived_solution, solution);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    for (auto& node : nodes) {
+        merge_flat_solutions_from_k_layers(node);
     }
 }
 

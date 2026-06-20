@@ -9,6 +9,7 @@
 #include "spaceship_cpp/problem1/problem1_table.hpp"
 #include "spaceship_cpp/problem2/problem2_theta_prime_scan.hpp"
 #include "spaceship_cpp/problem2/problem2_theta_prime_route_a.hpp"
+#include "spaceship_cpp/problem2/problem2_flyby_solve.hpp"
 
 namespace spaceship_cpp::config {
 
@@ -43,6 +44,7 @@ struct Problem1DiagnosticsDefaults {
 
 struct Problem2ThetaPrimeScanDefaults {
     int theta_prime_count;                       // Problem 2 出射段 θ' 初扫离散点数，默认 64
+    int phi_scan_count;                          // 初扫内嵌 Problem 1 的 phi 扫描点数；比全精度 solve 更粗以提速
     double branch_phi_pairing_max_gap;           // 相邻 θ' 节点 branch 配对允许的最大 |Δφ|，单位 rad
 };
 
@@ -91,5 +93,14 @@ problem2::Problem2RouteANewtonOptions make_problem2_route_a_newton_options(
     const Problem2RouteANewtonDefaults& defaults,
     const Problem1SolveDefaults& problem1_defaults
 );  // 构造 Route A Newton 选项，相对残差阈值与 Problem 1 默认保持一致
+
+problem2::Problem2FlybySolveConfig make_problem2_flyby_solve_config(
+    planet_params::PlanetId flyby_planet,
+    planet_params::PlanetId target_planet,
+    double flyby_time_seconds_since_j2000,
+    const Problem2ThetaPrimeScanDefaults& scan_defaults,
+    const Problem2RouteANewtonDefaults& route_a_defaults,
+    const Problem1SolveDefaults& problem1_defaults
+);  // 构造 Problem 2 飞掠求解默认配置（θ' 初扫 + G 搜索）
 
 }  // namespace spaceship_cpp::config

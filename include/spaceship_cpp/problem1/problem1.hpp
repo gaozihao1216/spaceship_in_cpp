@@ -215,8 +215,30 @@ struct Problem1Candidate {
     int target_revolution;
 };
 
+// 发射时刻行星状态；与遇合角 phi 无关，可在 phi 扫描前一次性计算并复用。
+struct Problem1LaunchState {
+    double r1 = 0.0;
+    double lambda1 = 0.0;
+    double theta2_start = 0.0;
+    double target_e = 0.0;
+    double target_p = 0.0;
+    double target_theta_0 = 0.0;
+};
+
+Problem1LaunchState compute_problem1_launch_state(
+    planet_params::PlanetId departure_planet,
+    planet_params::PlanetId target_planet,
+    double launch_time_seconds_since_j2000
+);
+
 // 解决“给定一个遇合角时两段时间是否匹配”的问题，是 Problem 1 求根的核心函数。
 Problem1ResidualResult evaluate_problem1_residual(const Problem1ResidualInput& input);
+
+// 在已缓存的发射时刻行星状态下评估残差，避免 phi 扫描内重复查询行星位置。
+Problem1ResidualResult evaluate_problem1_residual_with_launch_state(
+    const Problem1ResidualInput& input,
+    const Problem1LaunchState& launch_state
+);
 
 // 根据两个轨道点和相对近日点角，解转移轨道偏心率。
 double compute_transfer_e_from_two_points(
@@ -235,5 +257,11 @@ double compute_transfer_p_from_departure(
 
 // 120 等分粗扫：变号区间二分；同号区间经二次极值门控后三分并在极值两侧二分。
 std::vector<Problem1Candidate> solve_problem1(const Problem1SolveInput& input);
+
+// 与 solve_problem1 相同，但复用已计算的发射时刻行星状态（用于 θ' 初扫等批量调用）。
+std::vector<Problem1Candidate> solve_problem1_with_launch_state(
+    const Problem1SolveInput& input,
+    const Problem1LaunchState& launch_state
+);
 
 }  // namespace spaceship_cpp::problem1

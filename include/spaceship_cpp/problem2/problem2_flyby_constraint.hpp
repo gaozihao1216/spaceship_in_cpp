@@ -16,6 +16,7 @@
  */
 #pragma once
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -29,6 +30,27 @@ struct FlybyConstraintFResult {
     double value = 0.0;
     // 1 + e·cos(phi - theta_global)，接近 0 时几何退化。
     double denominator = 0.0;
+};
+
+struct FlybyConstraintFPartialDerivatives {
+    bool valid = false;
+    std::string invalid_reason;
+    double dF_de = 0.0;
+    double dF_dtheta_global = 0.0;
+};
+
+struct FlybyConstraintGQuadraticRootCandidate {
+    double normalized_t = 0.0;
+    double theta_prime = 0.0;
+    double predicted_G = 0.0;
+};
+
+struct FlybyConstraintGQuadraticRootEstimate {
+    bool valid = false;
+    std::string invalid_reason;
+    bool has_root_in_interval = false;
+    FlybyConstraintGQuadraticRootCandidate selected_root{};
+    std::optional<FlybyConstraintGQuadraticRootCandidate> alternate_root;
 };
 
 // 入射侧 F 值缓存：t_J 与入射轨道固定后，搜索 θ' 时只需重复计算出射 F。
@@ -99,6 +121,14 @@ FlybyConstraintFResult evaluate_flyby_constraint_F(
     double flyby_planet_eccentricity
 );
 
+// F 对 e 与 theta_global 的解析偏导数。
+FlybyConstraintFPartialDerivatives evaluate_flyby_constraint_F_partial_derivatives(
+    double orbit_eccentricity,
+    double orbit_perihelion_angle_global,
+    double flyby_true_anomaly_phi,
+    double flyby_planet_eccentricity
+);
+
 // 将局部角（以飞掠点方向为参考，Python 约定）或全局近日点角转换为全局角。
 double flyby_orbit_theta_global_from_input(
     double orbit_theta,
@@ -139,6 +169,17 @@ FlybyConstraintResidualResult evaluate_flyby_constraint_residual_from_incoming_c
 std::vector<FlybyThetaPrimeCandidate> detect_flyby_theta_prime_candidates_from_branch_samples(
     const std::vector<FlybyThetaPrimeBranchSample>& branch_samples,
     double near_zero_threshold
+);
+
+// 在 θ' 区间上用 Hermite 型二次模型求 G 的零点（求根公式，非极值公式）。
+// 若区间内存在候选根，按变号方向与线性根 t_lin 的接近程度选取唯一解。
+std::optional<FlybyConstraintGQuadraticRootEstimate> estimate_flyby_constraint_G_quadratic_root_on_theta_prime_interval(
+    double theta_prime_left,
+    double G_left,
+    double G_left_derivative,
+    double theta_prime_right,
+    double G_right,
+    double G_right_derivative
 );
 
 }  // namespace spaceship_cpp::problem2
