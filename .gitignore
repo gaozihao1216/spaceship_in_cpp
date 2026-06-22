@@ -38,6 +38,18 @@ results/
 *.profdata
 *.gcda
 *.gcno
+*_out.txt
+test_run_*.txt
+test_exit.txt
+build_exit.txt
+build_log_ps.txt
+step2_timing_test.txt
+
+# Repo-root profiling scratch (not part of build)
+step2_timing.cpp
+step2_timing2.cpp
+mk.py
+nul
 
 # Temporary files
 *.tmp
