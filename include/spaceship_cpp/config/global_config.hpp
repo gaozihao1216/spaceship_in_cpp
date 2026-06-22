@@ -1,12 +1,11 @@
 /*
  * 文件作用：声明全局默认配置。
- * 主要工作：集中提供 Problem 1、行星范围和诊断程序使用的默认参数。
+ * 主要工作：集中提供 Problem 1、Problem 2 与轨迹搜索管线使用的默认参数。
  */
 #pragma once
 
 #include "spaceship_cpp/planet_params/planet_params.hpp"
 #include "spaceship_cpp/problem1/problem1.hpp"
-#include "spaceship_cpp/problem1/problem1_table.hpp"
 #include "spaceship_cpp/problem2/problem2_theta_prime_scan.hpp"
 #include "spaceship_cpp/problem2/problem2_theta_prime_route_a.hpp"
 #include "spaceship_cpp/problem2/problem2_flyby_solve.hpp"
@@ -23,25 +22,6 @@ struct Problem1SolveDefaults {
     double max_candidate_relative_residual;   // 候选解允许的最大相对残差；用于过滤二分未真正收敛的伪候选
 };
 
-struct Problem1TableDefaults {
-    double departure_true_anomaly_start;         // nu_A 起点，单位 rad
-    int departure_true_anomaly_count;            // nu_A 维度离散数量
-    double target_true_anomaly_start;            // nu_B 起点，单位 rad
-    int target_true_anomaly_count;               // nu_B 维度离散数量
-    double transfer_theta_departure_start;       // theta_A 起点，单位 rad
-    int transfer_theta_departure_count;          // theta_A 维度离散数量
-    int max_transfer_revolution;                 // 每个几何点预计算的椭圆多圈分支最大 k
-    int max_target_revolution;                   // 每个几何点预计算的目标轨道额外绕行分支最大 q
-};
-
-struct Problem1DiagnosticsDefaults {
-    int solve_phi_scan_count;                    // problem1_solve_diagnostics 中单次 solve 的 phi 扫描点数
-    int table_departure_true_anomaly_count;     // problem1_table_diagnostics 中小表的 nu_A 维度数量
-    int table_target_true_anomaly_count;        // problem1_table_diagnostics 中小表的 nu_B 维度数量
-    int table_transfer_theta_departure_count;   // problem1_table_diagnostics 中小表的 theta_A 维度数量
-    double max_candidate_relative_residual;     // diagnostics 中候选解最大相对残差阈值
-};
-
 struct Problem2ThetaPrimeScanDefaults {
     int theta_prime_count;                       // Problem 2 出射段 θ' 初扫离散点数，默认 64
     int phi_scan_count;                          // 初扫内嵌 Problem 1 的 phi 扫描点数；比全精度 solve 更粗以提速
@@ -56,13 +36,21 @@ struct Problem2RouteANewtonDefaults {
     bool reject_on_residual_increase;            // 残差增大时是否判定为发散
 };
 
+struct TrajectorySearchDefaults {
+    int leg0_theta_coarse_scan_count;            // Step 1：每个首段目标的 θ 粗扫点数
+    int leg0_theta_fine_scan_count;              // Step 4：固定序列上的 θ 细扫点数
+    int leg0_theta_seeds_per_first_leg_target;   // Step 2：每个首段目标各自的 θ 种子数上限
+    int max_search_legs;                         // Step 2：自由路径 BFS 最大转移段数（含 leg0）
+    int top_k_sequences;                         // Step 3：保留的行星序列条数
+    int max_transfer_revolution;                 // 搜索管线 Problem 1 最大 k（默认 1，0 会漏解）
+    int max_target_revolution;                   // 搜索管线 Problem 1 最大 q（默认 1，0 会漏解）
+};
+
 struct GlobalConfig {
     Problem1SolveDefaults problem1_solve;              // Problem1 单次求解默认参数
-    Problem1TableDefaults problem1_table_smoke;        // Problem1 小规模建表默认参数，用于快速测试
-    Problem1TableDefaults problem1_table_medium;       // Problem1 中等规模建表默认参数，用于后续较认真诊断
-    Problem1DiagnosticsDefaults problem1_diagnostics;  // Problem1 diagnostics app 默认参数
     Problem2ThetaPrimeScanDefaults problem2_theta_prime_scan;  // Problem2 θ' 初扫默认参数
     Problem2RouteANewtonDefaults problem2_route_a_newton;      // Problem2 Route A Newton 默认参数
+    TrajectorySearchDefaults trajectory_search;      // 轨迹搜索管线默认参数
 };
 
 const GlobalConfig& global_config();
@@ -74,12 +62,6 @@ problem1::Problem1SolveInput make_problem1_solve_input(
     double transfer_perihelion_angle_global,
     const Problem1SolveDefaults& defaults
 );  // 按统一默认参数构造单次 solve 输入，避免在 app 中重复手写扫描和二分配置
-
-problem1::Problem1TableConfig make_problem1_table_config(
-    planet_params::PlanetId departure,
-    planet_params::PlanetId target,
-    const Problem1TableDefaults& defaults
-);  // 按统一默认参数构造有序行星对 3D 表配置，并把三个周期角维度离散数量转换为固定角步长 2pi / count
 
 problem2::Problem2ThetaPrimeScanConfig make_problem2_theta_prime_scan_config(
     planet_params::PlanetId flyby_planet,

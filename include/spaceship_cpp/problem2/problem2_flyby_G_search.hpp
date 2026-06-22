@@ -71,6 +71,63 @@ struct Problem2FlybyGBranchIntervalInput {
     Problem2OutgoingBranchSolution right_branch{};
 };
 
+// G 搜索 profiling：计数 + 叶节点耗时（Case C 中点已走 Route A，case_c_middle_ms 恒为 0）。
+struct Problem2FlybyGSearchProfile {
+    double incoming_cache_ms = 0.0;
+    double route_a_ms = 0.0;
+    double case_c_middle_ms = 0.0;
+    double enrich_ms = 0.0;
+
+    std::size_t scan_node_count = 0;
+    int max_transfer_revolution = 0;
+
+    std::size_t interval_visits = 0;
+    std::size_t interval_equal = 0;
+    std::size_t interval_case_b = 0;
+    std::size_t interval_case_c = 0;
+    std::size_t interval_discarded = 0;
+
+    std::size_t branch_interval_process_calls = 0;
+    std::size_t case_b_probe_calls = 0;
+    std::size_t case_c_middle_calls = 0;
+
+    std::size_t route_a_calls = 0;
+    std::size_t route_a_iterations = 0;
+    std::size_t g_newton_calls = 0;
+    std::size_t g_newton_iterations = 0;
+
+    // 顶层 63 个 θ′ 区间（recursion_depth==0）分类计数。
+    std::size_t top_interval_equal = 0;
+    std::size_t top_interval_case_b = 0;
+    std::size_t top_interval_case_c = 0;
+
+    // Case C 成功取到中点 branch 后：n_middle 相对 n_left/n_right 与左右子区间类型。
+    std::size_t case_c_split_samples = 0;
+    std::size_t case_c_endpoint_gap_sum = 0;
+    std::size_t case_c_middle_gt_max_endpoints = 0;
+    std::size_t case_c_middle_lt_min_endpoints = 0;
+    std::size_t case_c_middle_in_endpoint_range = 0;
+    std::size_t case_c_child_left_equal = 0;
+    std::size_t case_c_child_left_case_b = 0;
+    std::size_t case_c_child_left_case_c = 0;
+    std::size_t case_c_child_right_equal = 0;
+    std::size_t case_c_child_right_case_b = 0;
+    std::size_t case_c_child_right_case_c = 0;
+
+    // Case B 同理（Route A 中点）。
+    std::size_t case_b_split_samples = 0;
+    std::size_t case_b_middle_gt_max_endpoints = 0;
+    std::size_t case_b_middle_lt_min_endpoints = 0;
+    std::size_t case_b_middle_in_endpoint_range = 0;
+    std::size_t case_b_child_left_case_c = 0;
+    std::size_t case_b_child_right_case_c = 0;
+};
+
+void merge_problem2_flyby_G_search_profile(
+    Problem2FlybyGSearchProfile& into,
+    const Problem2FlybyGSearchProfile& from
+);
+
 struct Problem2FlybyGSearchConfig {
     Problem2ThetaPrimeScanConfig scan_config{};
     Problem2RouteANewtonOptions route_a_newton_options{};
@@ -80,6 +137,9 @@ struct Problem2FlybyGSearchConfig {
     // 情形 B/C 递归细分：区间宽度低于此值时舍去（端点大概率不是 G=0）。
     double theta_prime_tolerance = 1e-8;
     int max_recursion_depth = 32;
+
+    // 非空时记录 G 搜索各路径计数与叶节点耗时（测试/profiling 用）。
+    Problem2FlybyGSearchProfile* profile = nullptr;
 };
 
 enum class Problem2ThetaPrimeIntervalCase {
@@ -102,7 +162,7 @@ Problem2ThetaPrimeIntervalCase classify_problem2_theta_prime_interval_case(
     std::size_t right_branch_count
 );
 
-// 情形 C：|n_L - n_R| > 1 时，在 θ'_mid 处全量 solve_problem1 并估计导数。
+// 情形 C：|n_L - n_R| > 1 时，在 θ'_mid 处用 Route A（同情形 B）估计中点 branch。
 Problem2CaseCMiddleSolveResult solve_case_c_middle_branches_on_k_layer(
     const Problem2ThetaPrimeScanConfig& config,
     int transfer_revolution,
@@ -152,7 +212,8 @@ Problem2GNewtonResult refine_flyby_constraint_G_zero_by_newton(
     double initial_theta_prime_local,
     const Problem2OutgoingBranchSolution& reference_branch,
     const Problem2OutgoingBranchSolution& linear_endpoint_branch,
-    double linear_endpoint_theta_prime_local
+    double linear_endpoint_theta_prime_local,
+    Problem2FlybyGSearchProfile* profile = nullptr
 );
 
 // 单条配对 branch 区间：端点 near-zero 收录 + 一律二次求根 + G-Newton。

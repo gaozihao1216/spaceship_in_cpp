@@ -1,14 +1,11 @@
 /*
  * 文件作用：实现全局默认配置。
- * 主要工作：集中返回默认行星、Problem 1 扫描参数和诊断用配置值。
+ * 主要工作：集中返回 Problem 1、Problem 2 与轨迹搜索管线的默认参数。
  */
 #include "spaceship_cpp/config/global_config.hpp"
 
-#include "spaceship_cpp/common/common.hpp"
-
 namespace spaceship_cpp::config {
 
-// 返回全局单例默认配置；集中管理 Problem 1 求解/建表/诊断的默认参数。
 const GlobalConfig& global_config() {
     static const GlobalConfig kConfig{
         Problem1SolveDefaults{
@@ -19,33 +16,6 @@ const GlobalConfig& global_config() {
             0.0,    // residual 绝对容差当前保持为 0
             80,     // 每个变号区间最多二分 80 次
             1e-6,   // 候选解相对残差阈值
-        },
-        Problem1TableDefaults{
-            0.0,    // nu_A 从 0 开始
-            8,      // nu_A 方向取 8 个点
-            0.0,    // nu_B 从 0 开始
-            8,      // nu_B 方向取 8 个点
-            0.0,    // theta_A 从 0 开始
-            16,     // theta_A 方向取 16 个点
-            0,      // 小规模表先只保留最短前向分支
-            0,      // 小规模表先只保留目标轨道最近一次前向相遇分支
-        },
-        Problem1TableDefaults{
-            0.0,    // nu_A 从 0 开始
-            32,     // nu_A 方向细化
-            0.0,    // nu_B 从 0 开始
-            32,     // nu_B 方向细化
-            0.0,    // theta_A 从 0 开始
-            64,     // theta_A 方向细化
-            0,      // 中等规模表仍先不扩展额外椭圆多圈分支
-            0,      // 中等规模表也先不扩展目标轨道额外绕行分支
-        },
-        Problem1DiagnosticsDefaults{
-            120,    // 单次 solve diagnostics 默认使用 120 个 phi 扫描点
-            8,      // table diagnostics 默认使用 8 个 nu_A 点
-            8,      // table diagnostics 默认使用 8 个 nu_B 点
-            16,     // table diagnostics 默认使用 16 个 theta_A 点
-            1e-6,   // diagnostics 默认沿用 1e-6 相对残差阈值
         },
         Problem2ThetaPrimeScanDefaults{
             64,     // Problem 2 出射段 θ' 初扫默认 64 个离散点
@@ -59,12 +29,20 @@ const GlobalConfig& global_config() {
             1e-8,   // df/dφ 数值差分步长
             true,   // 残差增大即判定发散
         },
+        TrajectorySearchDefaults{
+            60,     // Step 1：θ 粗扫约 6° 一步，只划分可行区间
+            180,    // Step 4：固定序列 θ 细扫
+            3,      // Step 2：每个首段目标（Earth→P₁）的 θ 种子数上限（粗筛序列，细 θ 在 Step 4）
+            6,      // Step 2：自由路径最多 6 段转移（Earth→P₁→…→P₆）
+            3,      // Step 3：Top-K 行星序列
+            1,      // 搜索管线 max k：至少 1，k=0 会漏掉多圈转移分支
+            1,      // 搜索管线 max q：至少 1，q=0 会漏掉目标多圈相遇分支
+        },
     };
 
     return kConfig;
 }
 
-// 按统一默认参数构造 Problem1SolveInput；避免 app/测试中重复手写扫描和二分配置。
 problem1::Problem1SolveInput make_problem1_solve_input(
     planet_params::PlanetId departure,
     planet_params::PlanetId target,
@@ -84,29 +62,6 @@ problem1::Problem1SolveInput make_problem1_solve_input(
         defaults.residual_tolerance,
         defaults.max_bisection_iterations,
         defaults.max_candidate_relative_residual,
-    };
-}
-
-// 按默认参数构造 3D 表格配置，将离散点数转换为固定角步长 2π/count。
-problem1::Problem1TableConfig make_problem1_table_config(
-    planet_params::PlanetId departure,
-    planet_params::PlanetId target,
-    const Problem1TableDefaults& defaults
-) {
-    return problem1::Problem1TableConfig{
-        departure,
-        target,
-        defaults.departure_true_anomaly_start,
-        common::kTwoPi / static_cast<double>(defaults.departure_true_anomaly_count),
-        defaults.departure_true_anomaly_count,
-        defaults.target_true_anomaly_start,
-        common::kTwoPi / static_cast<double>(defaults.target_true_anomaly_count),
-        defaults.target_true_anomaly_count,
-        defaults.transfer_theta_departure_start,
-        common::kTwoPi / static_cast<double>(defaults.transfer_theta_departure_count),
-        defaults.transfer_theta_departure_count,
-        defaults.max_transfer_revolution,
-        defaults.max_target_revolution,
     };
 }
 
@@ -173,7 +128,7 @@ problem2::Problem2FlybySolveConfig make_problem2_flyby_solve_config(
     config.g_search_config.near_zero_G_threshold = 1e-4;
     config.g_search_config.solution_theta_prime_tolerance = 1e-8;
     config.g_search_config.theta_prime_tolerance = 1e-8;
-    config.g_search_config.max_recursion_depth = 32;
+    config.g_search_config.max_recursion_depth = 16;
     return config;
 }
 

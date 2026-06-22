@@ -8,11 +8,18 @@
 #include "spaceship_cpp/planet_params/planet_params.hpp"
 #include "spaceship_cpp/problem1/problem1.hpp"
 
+#include <chrono>
 #include <cmath>
 #include <limits>
 
 namespace spaceship_cpp::problem2 {
 namespace {
+
+using Clock = std::chrono::steady_clock;
+
+double elapsed_ms(Clock::time_point start, Clock::time_point end) {
+    return std::chrono::duration<double, std::milli>(end - start).count();
+}
 
 using spaceship_cpp::bfs::problem2_local_periapsis_angle_to_global;
 using spaceship_cpp::common::is_finite;
@@ -131,7 +138,8 @@ Problem2FlybyGSearchConfig bind_flyby_g_search_config(
 Problem2FlybySolveResult solve_problem2_flyby_with_scan_impl(
     const Problem2FlybySolveInput& input,
     const Problem2FlybyGSearchConfig& g_search_config,
-    const Problem2ThetaPrimeInitialScanResult& scan
+    const Problem2ThetaPrimeInitialScanResult& scan,
+    bool collect_profile
 ) {
     Problem2FlybySolveResult result{};
     if (!scan.ok || scan.nodes.size() < 2U) {
@@ -139,27 +147,46 @@ Problem2FlybySolveResult solve_problem2_flyby_with_scan_impl(
         return result;
     }
 
+    Problem2FlybyGSearchProfile profile{};
+    Problem2FlybyGSearchConfig g_search_config_with_profile = g_search_config;
+    if (collect_profile) {
+        g_search_config_with_profile.profile = &profile;
+    }
+
+    const Clock::time_point cache_start = Clock::now();
     const Problem2FlybyGContext context = build_problem2_flyby_G_context(
         input.flyby_planet,
         input.flyby_time_seconds_since_j2000,
         input.incoming_eccentricity,
         input.incoming_theta,
         input.incoming_theta_is_local);
+    if (collect_profile) {
+        profile.incoming_cache_ms = elapsed_ms(cache_start, Clock::now());
+    }
     if (!context.incoming_cache.valid) {
         result.error_message = "invalid_flyby_G_context";
+        if (collect_profile) {
+            result.g_search_profile = profile;
+            result.has_g_search_profile = true;
+        }
         return result;
     }
 
     const Problem2FlybyGSearchResult search = search_flyby_constraint_G_zeros_from_initial_scan(
         context,
-        g_search_config,
+        g_search_config_with_profile,
         scan);
     if (!search.ok) {
         result.error_message =
             search.error_message.empty() ? "flyby_G_search_failed" : search.error_message;
+        if (collect_profile) {
+            result.g_search_profile = profile;
+            result.has_g_search_profile = true;
+        }
         return result;
     }
 
+    const Clock::time_point enrich_start = Clock::now();
     for (const auto& g_solution : search.solutions) {
         const auto enriched = enrich_flyby_G_solution(input, g_solution);
         if (!enriched.has_value()) {
@@ -169,6 +196,11 @@ Problem2FlybySolveResult solve_problem2_flyby_with_scan_impl(
             result.solutions,
             *enriched,
             g_search_config.solution_theta_prime_tolerance);
+    }
+    if (collect_profile) {
+        profile.enrich_ms = elapsed_ms(enrich_start, Clock::now());
+        result.g_search_profile = profile;
+        result.has_g_search_profile = true;
     }
 
     result.ok = true;
@@ -219,7 +251,11 @@ Problem2FlybySolveResult solve_problem2_flyby_with_scan(
     }
 
     const Problem2FlybyGSearchConfig g_search_config = bind_flyby_g_search_config(input, config);
-    return solve_problem2_flyby_with_scan_impl(input, g_search_config, scan);
+    return solve_problem2_flyby_with_scan_impl(
+        input,
+        g_search_config,
+        scan,
+        config.collect_g_search_profile);
 }
 
 Problem2FlybySolveResult solve_problem2_flyby(
@@ -240,7 +276,11 @@ Problem2FlybySolveResult solve_problem2_flyby(
         return result;
     }
 
-    return solve_problem2_flyby_with_scan_impl(input, g_search_config, scan);
+    return solve_problem2_flyby_with_scan_impl(
+        input,
+        g_search_config,
+        scan,
+        config.collect_g_search_profile);
 }
 
 }  // namespace spaceship_cpp::problem2

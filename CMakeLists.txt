@@ -14,8 +14,6 @@ add_library(spaceship_cpp STATIC
     src/common/orbit_math.cpp
     src/common/time_utils.cpp
     src/problem1/problem1.cpp
-    src/problem1/diagnostics/problem1_diagnostics.cpp
-    src/problem1/tables/problem1_table.cpp
     src/problem2/flyby/problem2_slingshot.cpp
     src/problem2/flyby/problem2_flyby_constraint.cpp
     src/problem2/flyby/problem2_flyby_G_search.cpp
@@ -25,6 +23,12 @@ add_library(spaceship_cpp STATIC
     src/trajectory/flyby_physics.cpp
     src/trajectory/orbit_velocity.cpp
     src/bfs/bfs.cpp
+    src/bfs/fixed_sequence_bfs.cpp
+    src/bfs/leg0_theta_feasibility.cpp
+    src/bfs/trajectory_search_config.cpp
+    src/bfs/free_path_bfs.cpp
+    src/bfs/step3_top_k_sequences.cpp
+    src/bfs/step4_fixed_sequence_fine_search.cpp
     src/bfs/adapters/problem2_angle_frame_adapter.cpp
 )
 
@@ -35,30 +39,10 @@ if(OpenMP_CXX_FOUND)
     target_link_libraries(spaceship_cpp PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
-add_executable(problem1_solve_diagnostics
-    apps/problem1_solve_diagnostics.cpp
+add_executable(trajectory_search
+    apps/trajectory_search.cpp
 )
-target_link_libraries(problem1_solve_diagnostics PRIVATE spaceship_cpp)
-
-add_executable(problem1_table_diagnostics
-    apps/problem1_table_diagnostics.cpp
-)
-target_link_libraries(problem1_table_diagnostics PRIVATE spaceship_cpp)
-
-add_executable(performance_benchmark
-    apps/performance_benchmark.cpp
-)
-target_link_libraries(performance_benchmark PRIVATE spaceship_cpp)
-
-add_executable(problem1_scan_compare
-    apps/problem1_scan_compare.cpp
-)
-target_link_libraries(problem1_scan_compare PRIVATE spaceship_cpp)
-
-add_executable(problem1_profile
-    apps/problem1_profile.cpp
-)
-target_link_libraries(problem1_profile PRIVATE spaceship_cpp)
+target_link_libraries(trajectory_search PRIVATE spaceship_cpp)
 
 enable_testing()
 add_subdirectory(tests)

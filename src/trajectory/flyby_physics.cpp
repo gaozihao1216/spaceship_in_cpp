@@ -96,8 +96,8 @@ double compute_required_flyby_periapsis_radius(
     return planet_mu / (v_inf * v_inf) * (1.0 / sine - 1.0);
 }
 
-// 一站式评估飞掠物理可行性：检查 v_∞ 匹配、转角上限、近心距下界；
-// 解决 BFS 搜索中过滤不可行飞掠边的问题。
+// 一站式评估飞掠物理可行性；BFS 搜索可用作剪枝（solve 层不据此过滤 G=0 解）。
+// 独立约束：v_∞ 大小匹配 + 转角不超过 δ_max(μ, r_p_min, v_∞)。
 FlybyPhysicalFeasibilityResult evaluate_flyby_physical_feasibility(
     planet_params::PlanetId flyby_planet,
     double flyby_time,
@@ -176,14 +176,9 @@ FlybyPhysicalFeasibilityResult evaluate_flyby_physical_feasibility(
 
     result.rejected_by_turn_angle =
         result.turn_angle_rad > result.max_turn_angle_rad + options.turn_angle_tolerance_rad;
-    result.rejected_by_periapsis_radius =
-        is_finite(result.required_periapsis_radius_m) &&
-        result.required_periapsis_radius_m < result.min_allowed_periapsis_radius_m;
 
     result.valid = true;
-    result.feasible = !result.rejected_by_vinf_mismatch &&
-        !result.rejected_by_turn_angle &&
-        !result.rejected_by_periapsis_radius;
+    result.feasible = !result.rejected_by_vinf_mismatch && !result.rejected_by_turn_angle;
     return result;
 }
 

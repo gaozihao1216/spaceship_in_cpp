@@ -28,6 +28,7 @@ struct Problem2FlybySolveInput {
 
 struct Problem2FlybySolveConfig {
     Problem2FlybyGSearchConfig g_search_config{};
+    bool collect_g_search_profile = false;
 };
 
 struct Problem2FlybySolution {
@@ -59,6 +60,9 @@ struct Problem2FlybySolveResult {
     bool ok = false;
     std::string error_message;
     std::vector<Problem2FlybySolution> solutions;
+
+    bool has_g_search_profile = false;
+    Problem2FlybyGSearchProfile g_search_profile{};
 };
 
 // 给定入射轨道与行星对，执行 θ' 初扫 + G=0 搜索，返回全部飞掠出射候选。
@@ -74,7 +78,7 @@ Problem2FlybySolveResult solve_problem2_flyby_with_scan(
     const Problem2ThetaPrimeInitialScanResult& scan
 );
 
-// 为飞掠求解执行 θ' 初扫；与 solve 内嵌扫描参数一致，供 BFS 等场景一次扫描、多次求解。
+// 为飞掠求解执行 θ' 初扫；与 solve 内嵌扫描参数一致，供单次 expansion 内 scan→solve 流水线使用。
 Problem2ThetaPrimeInitialScanResult run_problem2_flyby_theta_prime_initial_scan(
     const Problem2FlybySolveInput& input,
     const Problem2FlybySolveConfig& config

@@ -1,22 +1,47 @@
 # spaceship_in_cpp
 
-这是与原 Python 项目 spaceship 同级的独立 C++ 重写工程。
+C++ 重写版行星际轨迹搜索工程。当前核心任务：**给定地球发射时刻，搜索到达水星的最佳转移路径**（直达或经内行星飞掠）。
 
-当前模块划分：
+## 模块
 
-- problem1：Problem 1 直接求解、诊断和 endpoint transfer-time table
-- problem2：Problem 2 弹弓残差方程
-- core_types：核心类型
-- planet_params：行星参数和行星状态
-- common：共用函数
-- trajectory：轨道速度和飞掠物理工具
-- bfs：BFS 相关基础状态、角度适配器与搜索逻辑文档（`docs/zh/bfs_search.md`）
+| 模块 | 说明 |
+|------|------|
+| `problem1` | 两点时间匹配转移求解 |
+| `problem2` | 飞掠弹弓 + 外向转移联立求解 |
+| `bfs` | **轨迹搜索入口**（`search_best_trajectory`） |
+| `visualization` | 轨道绘图（占位框架） |
+| `planet_params` / `trajectory` | 行星状态与轨道物理 |
 
-更详细的当前文件结构见 `docs/zh/code_structure.md`（英文：`docs/en/code_structure.md`）。完整文档索引见 `docs/README.md`。
-
-构建方式：
+## 快速开始
 
 ```bash
-bash scripts/build.sh
-bash scripts/run_tests.sh
+cmake -S . -B build
+cmake --build build -j4 --target trajectory_search
+./build/trajectory_search
+```
+
+## 文档
+
+- 任务与 API：[`docs/zh/earth_to_mercury.md`](docs/zh/earth_to_mercury.md)
+- 文档索引：[`docs/zh/README.md`](docs/zh/README.md)
+- 可视化占位：[`visualization/README.md`](visualization/README.md)
+
+## 公共 API 示例
+
+```cpp
+#include "spaceship_cpp/bfs/bfs.hpp"
+
+spaceship_cpp::bfs::TrajectorySearchInput input{};
+input.launch_time_seconds_since_j2000 = 0.0;
+input.destination_planet = PlanetId::Mercury;
+
+const auto result = spaceship_cpp::bfs::search_best_trajectory(input);
+// result.visit_sequence, result.legs[i].eccentricity / semi_latus_rectum_au / ...
+```
+
+## 测试
+
+```bash
+cmake --build build -j4
+ctest --test-dir build --output-on-failure
 ```

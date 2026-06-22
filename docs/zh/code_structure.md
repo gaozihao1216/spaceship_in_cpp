@@ -4,10 +4,10 @@
 
 ## 顶层目录
 
-- `CMakeLists.txt`：构建 `spaceship_cpp` 静态库、两个诊断程序（apps）和测试套件。
+- `CMakeLists.txt`：构建 `spaceship_cpp` 静态库、`trajectory_search` 主程序与测试套件。
 - `README.md`：项目简介与构建命令。
-- `apps/problem1_solve_diagnostics.cpp`：Problem 1 直接求解器的命令行诊断程序。
-- `apps/problem1_table_diagnostics.cpp`：Problem 1 端点表格（endpoint table）的命令行诊断程序。
+- `apps/trajectory_search.cpp`：Earth → Mercury 命令行入口（调用 `search_best_trajectory`）。
+- `visualization/`：轨迹可视化占位框架（尚未接入构建）。
 - `scripts/build.sh`：项目构建脚本。
 - `scripts/run_tests.sh`：测试运行脚本。
 
@@ -27,7 +27,9 @@
 - `include/spaceship_cpp/problem2/problem2_slingshot.hpp`：Problem 2 飞掠弹弓残差方程。
 - `include/spaceship_cpp/trajectory/flyby_physics.hpp`：物理飞掠可行性计算。
 - `include/spaceship_cpp/trajectory/orbit_velocity.hpp`：轨道速度与行星相对速度计算。
-- `include/spaceship_cpp/bfs/bfs.hpp`：BFS 模块占位入口头文件。
+- `include/spaceship_cpp/bfs/bfs.hpp`：**BFS 公共入口**（`search_best_trajectory`）。
+- `include/spaceship_cpp/bfs/trajectory_solution.hpp`：任务输入/输出与 `TransferLegDescriptor`。
+- `include/spaceship_cpp/bfs/trajectory_search_config.hpp`：Steps 1–4 管线配置。
 - `include/spaceship_cpp/bfs/problem2_angle_frame_adapter.hpp`：全局近日点角与 Problem 2 局部角之间的转换。
 - `include/spaceship_cpp/bfs/trajectory_search_state.hpp`：轨迹搜索的基础状态与边数据结构。
 
@@ -46,7 +48,13 @@
 - `src/problem2/flyby/problem2_slingshot.cpp`：Problem 2 弹弓残差方程实现。
 - `src/trajectory/flyby_physics.cpp`：飞掠物理可行性判断实现。
 - `src/trajectory/orbit_velocity.cpp`：轨道速度计算实现。
-- `src/bfs/bfs.cpp`：BFS 模块占位实现。
+- `src/bfs/bfs.cpp`：**BFS 公共 API 实现**（封装 Steps 1–4，按目标行星筛选最优解）。
+- `src/bfs/free_path_bfs.cpp`：Step 2 自由路径 BFS。
+- `src/bfs/step3_top_k_sequences.cpp`：Step 3 Top-K 序列筛选。
+- `src/bfs/step4_fixed_sequence_fine_search.cpp`：Step 4 细 θ + 固定序列精搜。
+- `src/bfs/fixed_sequence_bfs.cpp`：固定行星序列 BFS。
+- `src/bfs/leg0_theta_feasibility.cpp`：Step 1 leg0 θ 可行性扫描。
+- `src/bfs/trajectory_search_config.cpp`：管线默认配置工厂。
 - `src/bfs/adapters/problem2_angle_frame_adapter.cpp`：角度坐标系适配器实现。
 
 ## 测试（`tests/`）

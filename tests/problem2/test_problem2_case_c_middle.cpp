@@ -1,5 +1,5 @@
 /*
- * 文件作用：测试情形 C 在 θ'_mid 处全量 Problem 1 求解。
+ * 文件作用：测试情形 C 在 θ'_mid 处 Route A 中点 branch 估计。
  */
 #include "spaceship_cpp/config/global_config.hpp"
 #include "spaceship_cpp/problem2/problem2_flyby_G_search.hpp"
@@ -125,8 +125,6 @@ int main() {
     assert(middle.ok);
     assert(std::abs(middle.theta_prime_middle - theta_middle) <= 1e-12);
     assert(!middle.middle_branches.empty());
-    assert(middle.middle_branches.size() >= interval->left_branches.size() ||
-           middle.middle_branches.size() >= interval->right_branches.size());
 
     for (const auto& branch : middle.middle_branches) {
         assert(branch.transfer_revolution == interval->transfer_revolution);

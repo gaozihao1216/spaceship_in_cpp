@@ -51,24 +51,25 @@ struct FlybyPhysicalFeasibilityResult {
     double v_infinity_out = 0.0;
     double v_infinity_mismatch = 0.0;
 
-    // 实际需要的转角和该行星在最小近心距下允许的最大转角。
+    // 飞掠所需转角 δ，及在 (μ, r_p_min, v_∞) 下允许的最大转角 δ_max。
+    // δ > δ_max 等价于 r_p_required < r_p_min（同一双曲线飞掠约束的两面，不独立判断）。
     double turn_angle_rad = 0.0;
     double max_turn_angle_rad = 0.0;
 
-    // 满足该转角所需近心距，以及由行星半径+最低高度给出的下界。
+    // 诊断量：达到 δ 所需近心距，及 r_p_min = R_planet + h_min。
     double required_periapsis_radius_m = std::numeric_limits<double>::infinity();
     double min_allowed_periapsis_radius_m = std::numeric_limits<double>::infinity();
 
-    // 三类拒绝原因拆开记录，便于搜索统计知道瓶颈来自哪里。
     bool rejected_by_vinf_mismatch = false;
+    // 转角超限（含近心距不足）；max_turn_angle_rad 随本次飞掠 v_∞ 变化，非行星常数。
     bool rejected_by_turn_angle = false;
-    bool rejected_by_periapsis_radius = false;
 };
 
 // 规范化偏心率和近日点角，解决负偏心率等价表示带来的比较问题。
 CanonicalOrbitETheta canonicalize_orbit_e_theta(double eccentricity, double periapsis_angle);
 
-// 根据双曲线飞掠公式计算给定 v_inf 和最小近心距允许的最大转角。
+// 给定 μ、r_p_min 与 v_∞，由双曲线飞掠公式 e_hyp = 1 + r_p v_∞²/μ 得允许的最大转角。
+// δ_max 随 v_∞ 增大而减小，并非行星专属常数。
 double compute_max_flyby_turn_angle_rad(
     double planet_mu,
     double min_periapsis_radius,
@@ -82,7 +83,9 @@ double compute_required_flyby_periapsis_radius(
     double turn_angle_rad
 );
 
-// 一站式评估某次飞掠是否满足速度连续、转角和近心距约束。
+// 一站式评估飞掠物理可行性。
+// 仅两类独立约束：(1) |v_∞,in − v_∞,out|；(2) δ ≤ δ_max(μ, r_p_min, v_∞)。
+// 近心距比较与转角比较等价，只保留转角判据；required_periapsis_radius_m 仅作诊断输出。
 FlybyPhysicalFeasibilityResult evaluate_flyby_physical_feasibility(
     planet_params::PlanetId flyby_planet,
     double flyby_time,

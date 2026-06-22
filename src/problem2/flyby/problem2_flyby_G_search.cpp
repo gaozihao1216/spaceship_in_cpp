@@ -5,14 +5,232 @@
 
 #include "spaceship_cpp/bfs/problem2_angle_frame_adapter.hpp"
 #include "spaceship_cpp/common/common.hpp"
+#include "spaceship_cpp/config/global_config.hpp"
 #include "spaceship_cpp/planet_params/planet_params.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <limits>
 
 namespace spaceship_cpp::problem2 {
+
+bool attach_middle_branch_derivatives_from_dense_endpoint(
+    double dense_theta_prime,
+    const Problem2OutgoingBranchSolution& dense_branch,
+    double middle_theta_prime,
+    Problem2OutgoingBranchSolution& middle_branch
+) {
+    const double delta_theta = middle_theta_prime - dense_theta_prime;
+    if (!spaceship_cpp::common::is_finite(delta_theta) || delta_theta == 0.0) {
+        return false;
+    }
+
+    const double phi_delta = spaceship_cpp::common::normalize_angle_minus_pi_pi(
+        middle_branch.encounter_global_angle - dense_branch.encounter_global_angle);
+    const double dphi = phi_delta / delta_theta;
+    const double de =
+        (middle_branch.outgoing_eccentricity - dense_branch.outgoing_eccentricity) / delta_theta;
+    if (!spaceship_cpp::common::is_finite(dphi) || !spaceship_cpp::common::is_finite(de)) {
+        return false;
+    }
+
+    middle_branch.dphi_dtheta_prime = dphi;
+    middle_branch.de_dtheta_prime = de;
+    middle_branch.has_dphi_dtheta_prime = true;
+    middle_branch.has_de_dtheta_prime = true;
+    return true;
+}
+
 namespace {
+
+using Clock = std::chrono::steady_clock;
+
+double elapsed_ms(Clock::time_point start, Clock::time_point end) {
+    return std::chrono::duration<double, std::milli>(end - start).count();
+}
+
+Problem2FlybyGSearchProfile* profile_from_config(const Problem2FlybyGSearchConfig& config) {
+    return config.profile;
+}
+
+void record_interval_case(
+    Problem2FlybyGSearchProfile* profile,
+    Problem2ThetaPrimeIntervalCase interval_case
+) {
+    if (profile == nullptr) {
+        return;
+    }
+    ++profile->interval_visits;
+    switch (interval_case) {
+        case Problem2ThetaPrimeIntervalCase::EqualBranchCount:
+            ++profile->interval_equal;
+            break;
+        case Problem2ThetaPrimeIntervalCase::BranchCountDifferenceOne:
+            ++profile->interval_case_b;
+            break;
+        case Problem2ThetaPrimeIntervalCase::BranchCountDifferenceGreaterThanOne:
+            ++profile->interval_case_c;
+            break;
+    }
+}
+
+void record_top_interval_case(
+    Problem2FlybyGSearchProfile* profile,
+    int recursion_depth,
+    Problem2ThetaPrimeIntervalCase interval_case
+) {
+    if (profile == nullptr || recursion_depth != 0) {
+        return;
+    }
+    switch (interval_case) {
+        case Problem2ThetaPrimeIntervalCase::EqualBranchCount:
+            ++profile->top_interval_equal;
+            break;
+        case Problem2ThetaPrimeIntervalCase::BranchCountDifferenceOne:
+            ++profile->top_interval_case_b;
+            break;
+        case Problem2ThetaPrimeIntervalCase::BranchCountDifferenceGreaterThanOne:
+            ++profile->top_interval_case_c;
+            break;
+    }
+}
+
+void record_child_interval_case(
+    Problem2FlybyGSearchProfile* profile,
+    bool is_left_child,
+    bool is_case_c_parent,
+    Problem2ThetaPrimeIntervalCase child_case
+) {
+    if (profile == nullptr) {
+        return;
+    }
+    if (is_case_c_parent) {
+        if (is_left_child) {
+            switch (child_case) {
+                case Problem2ThetaPrimeIntervalCase::EqualBranchCount:
+                    ++profile->case_c_child_left_equal;
+                    break;
+                case Problem2ThetaPrimeIntervalCase::BranchCountDifferenceOne:
+                    ++profile->case_c_child_left_case_b;
+                    break;
+                case Problem2ThetaPrimeIntervalCase::BranchCountDifferenceGreaterThanOne:
+                    ++profile->case_c_child_left_case_c;
+                    break;
+            }
+        } else {
+            switch (child_case) {
+                case Problem2ThetaPrimeIntervalCase::EqualBranchCount:
+                    ++profile->case_c_child_right_equal;
+                    break;
+                case Problem2ThetaPrimeIntervalCase::BranchCountDifferenceOne:
+                    ++profile->case_c_child_right_case_b;
+                    break;
+                case Problem2ThetaPrimeIntervalCase::BranchCountDifferenceGreaterThanOne:
+                    ++profile->case_c_child_right_case_c;
+                    break;
+            }
+        }
+        return;
+    }
+
+    if (is_left_child) {
+        if (child_case == Problem2ThetaPrimeIntervalCase::BranchCountDifferenceGreaterThanOne) {
+            ++profile->case_b_child_left_case_c;
+        }
+    } else if (child_case == Problem2ThetaPrimeIntervalCase::BranchCountDifferenceGreaterThanOne) {
+        ++profile->case_b_child_right_case_c;
+    }
+}
+
+void record_middle_branch_split_stats(
+    Problem2FlybyGSearchProfile* profile,
+    Problem2ThetaPrimeIntervalCase parent_case,
+    const std::vector<Problem2OutgoingBranchSolution>& left_branches,
+    const std::vector<Problem2OutgoingBranchSolution>& middle_branches,
+    const std::vector<Problem2OutgoingBranchSolution>& right_branches
+) {
+    if (profile == nullptr) {
+        return;
+    }
+
+    const std::size_t n_left = left_branches.size();
+    const std::size_t n_right = right_branches.size();
+    const std::size_t n_middle = middle_branches.size();
+    const std::size_t n_min = std::min(n_left, n_right);
+    const std::size_t n_max = std::max(n_left, n_right);
+
+    const auto classify_counts = [](std::size_t left_count, std::size_t right_count) {
+        if (left_count == right_count) {
+            return Problem2ThetaPrimeIntervalCase::EqualBranchCount;
+        }
+        if (left_count + 1U == right_count || right_count + 1U == left_count) {
+            return Problem2ThetaPrimeIntervalCase::BranchCountDifferenceOne;
+        }
+        return Problem2ThetaPrimeIntervalCase::BranchCountDifferenceGreaterThanOne;
+    };
+
+    const Problem2ThetaPrimeIntervalCase left_child_case = classify_counts(n_left, n_middle);
+    const Problem2ThetaPrimeIntervalCase right_child_case = classify_counts(n_middle, n_right);
+
+    const bool is_case_c =
+        parent_case == Problem2ThetaPrimeIntervalCase::BranchCountDifferenceGreaterThanOne;
+    record_child_interval_case(profile, true, is_case_c, left_child_case);
+    record_child_interval_case(profile, false, is_case_c, right_child_case);
+
+    if (is_case_c) {
+        ++profile->case_c_split_samples;
+        profile->case_c_endpoint_gap_sum += n_max - n_min;
+        if (n_middle > n_max) {
+            ++profile->case_c_middle_gt_max_endpoints;
+        } else if (n_middle < n_min) {
+            ++profile->case_c_middle_lt_min_endpoints;
+        } else {
+            ++profile->case_c_middle_in_endpoint_range;
+        }
+        return;
+    }
+
+    if (parent_case != Problem2ThetaPrimeIntervalCase::BranchCountDifferenceOne) {
+        return;
+    }
+
+    ++profile->case_b_split_samples;
+    if (n_middle > n_max) {
+        ++profile->case_b_middle_gt_max_endpoints;
+    } else if (n_middle < n_min) {
+        ++profile->case_b_middle_lt_min_endpoints;
+    } else {
+        ++profile->case_b_middle_in_endpoint_range;
+    }
+}
+
+Problem2RouteANewtonResult timed_refine_route_a_at_theta_prime(
+    Problem2FlybyGSearchProfile* profile,
+    const Problem2ThetaPrimeScanConfig& config,
+    double target_theta_prime_local,
+    const Problem2OutgoingBranchSolution& linear_endpoint_branch,
+    double linear_endpoint_theta_prime_local,
+    int transfer_revolution,
+    const Problem2RouteANewtonOptions& options
+) {
+    const Clock::time_point start = Clock::now();
+    const Problem2RouteANewtonResult result = refine_problem2_route_a_at_theta_prime(
+        config,
+        target_theta_prime_local,
+        linear_endpoint_branch,
+        linear_endpoint_theta_prime_local,
+        transfer_revolution,
+        options);
+    if (profile != nullptr) {
+        profile->route_a_ms += elapsed_ms(start, Clock::now());
+        ++profile->route_a_calls;
+        if (result.iterations_used > 0) {
+            profile->route_a_iterations += static_cast<std::size_t>(result.iterations_used);
+        }
+    }
+    return result;
+}
 
 using spaceship_cpp::bfs::problem2_local_periapsis_angle_to_global;
 using spaceship_cpp::common::is_finite;
@@ -52,7 +270,8 @@ std::optional<RouteAGEvaluation> evaluate_route_a_G_at_theta_prime(
     double target_theta_prime_local,
     const Problem2OutgoingBranchSolution& reference_branch,
     const Problem2OutgoingBranchSolution& linear_endpoint_branch,
-    double linear_endpoint_theta_prime_local
+    double linear_endpoint_theta_prime_local,
+    Problem2FlybyGSearchProfile* profile
 ) {
     if (!linear_endpoint_branch.has_de_dtheta_prime ||
         !is_finite(linear_endpoint_branch.de_dtheta_prime) ||
@@ -61,7 +280,8 @@ std::optional<RouteAGEvaluation> evaluate_route_a_G_at_theta_prime(
         return std::nullopt;
     }
 
-    const Problem2RouteANewtonResult route_a = refine_problem2_route_a_at_theta_prime(
+    const Problem2RouteANewtonResult route_a = timed_refine_route_a_at_theta_prime(
+        profile,
         scan_config,
         target_theta_prime_local,
         linear_endpoint_branch,
@@ -164,33 +384,6 @@ bool should_discard_g_search_interval(
         recursion_depth >= max_recursion_depth;
 }
 
-bool attach_middle_branch_derivatives_from_dense_endpoint(
-    double dense_theta_prime,
-    const Problem2OutgoingBranchSolution& dense_branch,
-    double middle_theta_prime,
-    Problem2OutgoingBranchSolution& middle_branch
-) {
-    const double delta_theta = middle_theta_prime - dense_theta_prime;
-    if (!is_finite(delta_theta) || delta_theta == 0.0) {
-        return false;
-    }
-
-    const double phi_delta = spaceship_cpp::common::normalize_angle_minus_pi_pi(
-        middle_branch.encounter_global_angle - dense_branch.encounter_global_angle);
-    const double dphi = phi_delta / delta_theta;
-    const double de =
-        (middle_branch.outgoing_eccentricity - dense_branch.outgoing_eccentricity) / delta_theta;
-    if (!is_finite(dphi) || !is_finite(de)) {
-        return false;
-    }
-
-    middle_branch.dphi_dtheta_prime = dphi;
-    middle_branch.de_dtheta_prime = de;
-    middle_branch.has_dphi_dtheta_prime = true;
-    middle_branch.has_de_dtheta_prime = true;
-    return true;
-}
-
 struct Problem2CaseBMiddleProbeResult {
     bool ok = false;
     std::string status_reason;
@@ -198,15 +391,19 @@ struct Problem2CaseBMiddleProbeResult {
     std::vector<Problem2OutgoingBranchSolution> middle_branches;
 };
 
-Problem2CaseBMiddleProbeResult probe_case_b_middle_for_G_search(
+Problem2CaseBMiddleProbeResult probe_middle_branches_via_route_a_for_g_search(
     const Problem2ThetaPrimeScanConfig& config,
     const Problem2RouteANewtonOptions& options,
     double theta_prime_left,
     const std::vector<Problem2OutgoingBranchSolution>& left_branches,
     double theta_prime_right,
-    const std::vector<Problem2OutgoingBranchSolution>& right_branches
+    const std::vector<Problem2OutgoingBranchSolution>& right_branches,
+    Problem2FlybyGSearchProfile* profile
 ) {
     Problem2CaseBMiddleProbeResult result{};
+    if (profile != nullptr) {
+        ++profile->case_b_probe_calls;
+    }
     if (!is_finite(theta_prime_left) || !is_finite(theta_prime_right)) {
         result.status_reason = "non_finite_theta_prime_interval";
         return result;
@@ -215,9 +412,12 @@ Problem2CaseBMiddleProbeResult probe_case_b_middle_for_G_search(
         result.status_reason = "invalid_theta_prime_interval_order";
         return result;
     }
-    if (classify_problem2_theta_prime_interval_case(left_branches.size(), right_branches.size()) !=
-        Problem2ThetaPrimeIntervalCase::BranchCountDifferenceOne) {
-        result.status_reason = "case_b_requires_branch_count_difference_one";
+    if (left_branches.size() == right_branches.size()) {
+        result.status_reason = "requires_unequal_branch_count";
+        return result;
+    }
+    if (left_branches.empty() || right_branches.empty()) {
+        result.status_reason = "requires_nonempty_endpoint_branches";
         return result;
     }
 
@@ -233,7 +433,8 @@ Problem2CaseBMiddleProbeResult probe_case_b_middle_for_G_search(
             continue;
         }
 
-        const Problem2RouteANewtonResult newton = refine_problem2_route_a_at_theta_prime(
+        const Problem2RouteANewtonResult newton = timed_refine_route_a_at_theta_prime(
+            profile,
             config,
             result.theta_prime_middle,
             dense_branch,
@@ -256,12 +457,37 @@ Problem2CaseBMiddleProbeResult probe_case_b_middle_for_G_search(
     }
 
     if (result.middle_branches.empty()) {
-        result.status_reason = "case_b_middle_probe_produced_no_branches";
+        result.status_reason = "route_a_middle_probe_produced_no_branches";
         return result;
     }
 
     result.ok = true;
     return result;
+}
+
+Problem2CaseBMiddleProbeResult probe_case_b_middle_for_G_search(
+    const Problem2ThetaPrimeScanConfig& config,
+    const Problem2RouteANewtonOptions& options,
+    double theta_prime_left,
+    const std::vector<Problem2OutgoingBranchSolution>& left_branches,
+    double theta_prime_right,
+    const std::vector<Problem2OutgoingBranchSolution>& right_branches,
+    Problem2FlybyGSearchProfile* profile
+) {
+    if (classify_problem2_theta_prime_interval_case(left_branches.size(), right_branches.size()) !=
+        Problem2ThetaPrimeIntervalCase::BranchCountDifferenceOne) {
+        Problem2CaseBMiddleProbeResult result{};
+        result.status_reason = "case_b_requires_branch_count_difference_one";
+        return result;
+    }
+    return probe_middle_branches_via_route_a_for_g_search(
+        config,
+        options,
+        theta_prime_left,
+        left_branches,
+        theta_prime_right,
+        right_branches,
+        profile);
 }
 
 std::vector<Problem2FlybyGSolution> search_flyby_constraint_G_on_k_layer_interval(
@@ -289,6 +515,9 @@ std::vector<Problem2FlybyGSolution> search_flyby_constraint_G_on_k_layer_interva
     const Problem2ThetaPrimeIntervalCase interval_case = classify_problem2_theta_prime_interval_case(
         left_branches.size(),
         right_branches.size());
+    Problem2FlybyGSearchProfile* profile = profile_from_config(config);
+    record_interval_case(profile, interval_case);
+    record_top_interval_case(profile, recursion_depth, interval_case);
 
     if (interval_case == Problem2ThetaPrimeIntervalCase::EqualBranchCount) {
         const auto pairs = pair_outgoing_branch_solutions_by_phi(
@@ -322,39 +551,35 @@ std::vector<Problem2FlybyGSolution> search_flyby_constraint_G_on_k_layer_interva
             config.theta_prime_tolerance,
             recursion_depth,
             config.max_recursion_depth)) {
+        if (profile != nullptr) {
+            ++profile->interval_discarded;
+        }
         return solutions;
     }
 
     double theta_prime_middle = 0.0;
     std::vector<Problem2OutgoingBranchSolution> middle_branches;
 
-    if (interval_case == Problem2ThetaPrimeIntervalCase::BranchCountDifferenceOne) {
-        const auto probe = probe_case_b_middle_for_G_search(
-            config.scan_config,
-            config.route_a_newton_options,
-            theta_prime_left,
-            left_branches,
-            theta_prime_right,
-            right_branches);
-        if (!probe.ok) {
-            return solutions;
-        }
-        theta_prime_middle = probe.theta_prime_middle;
-        middle_branches = probe.middle_branches;
-    } else {
-        const auto case_c = solve_case_c_middle_branches_on_k_layer(
-            config.scan_config,
-            transfer_revolution,
-            theta_prime_left,
-            left_branches,
-            theta_prime_right,
-            right_branches);
-        if (!case_c.ok) {
-            return solutions;
-        }
-        theta_prime_middle = case_c.theta_prime_middle;
-        middle_branches = case_c.middle_branches;
+    const auto probe = probe_middle_branches_via_route_a_for_g_search(
+        config.scan_config,
+        config.route_a_newton_options,
+        theta_prime_left,
+        left_branches,
+        theta_prime_right,
+        right_branches,
+        profile);
+    if (!probe.ok) {
+        return solutions;
     }
+    theta_prime_middle = probe.theta_prime_middle;
+    middle_branches = std::move(probe.middle_branches);
+
+    record_middle_branch_split_stats(
+        profile,
+        interval_case,
+        left_branches,
+        middle_branches,
+        right_branches);
 
     const auto left_solutions = search_flyby_constraint_G_on_k_layer_interval(
         incoming_cache,
@@ -433,99 +658,51 @@ Problem2CaseCMiddleSolveResult solve_case_c_middle_branches_on_k_layer(
         return result;
     }
 
+    const bool dense_is_left = left_branches.size() > right_branches.size();
+    const auto& dense_branches = dense_is_left ? left_branches : right_branches;
+    const double dense_theta_prime = dense_is_left ? theta_prime_left : theta_prime_right;
+
     result.theta_prime_middle = 0.5 * (theta_prime_left + theta_prime_right);
-    Problem2ThetaPrimeNodeSnapshot middle_snapshot =
-        evaluate_problem2_theta_prime_node(config, result.theta_prime_middle);
-    const std::size_t layer_index = static_cast<std::size_t>(transfer_revolution);
-    if (layer_index >= middle_snapshot.solutions_by_k.size()) {
-        result.status_reason = "case_c_middle_node_missing_k_layer";
-        return result;
+    result.middle_branches.reserve(dense_branches.size());
+
+    const auto& defaults = spaceship_cpp::config::global_config();
+    const auto route_a_options = spaceship_cpp::config::make_problem2_route_a_newton_options(
+        defaults.problem2_route_a_newton,
+        defaults.problem1_solve);
+
+    for (const auto& dense_branch : dense_branches) {
+        if (dense_branch.transfer_revolution != transfer_revolution) {
+            continue;
+        }
+        if (!dense_branch.has_dphi_dtheta_prime || !is_finite(dense_branch.dphi_dtheta_prime)) {
+            continue;
+        }
+
+        const Problem2RouteANewtonResult newton = refine_problem2_route_a_at_theta_prime(
+            config,
+            result.theta_prime_middle,
+            dense_branch,
+            dense_theta_prime,
+            transfer_revolution,
+            route_a_options);
+        if (!newton.ok) {
+            continue;
+        }
+
+        Problem2OutgoingBranchSolution middle_branch = newton.solution;
+        if (!attach_middle_branch_derivatives_from_dense_endpoint(
+                dense_theta_prime,
+                dense_branch,
+                result.theta_prime_middle,
+                middle_branch)) {
+            continue;
+        }
+        result.middle_branches.push_back(std::move(middle_branch));
     }
 
-    result.middle_branches = middle_snapshot.solutions_by_k[layer_index];
     if (result.middle_branches.empty()) {
-        result.status_reason = "case_c_middle_k_layer_empty";
+        result.status_reason = "route_a_middle_probe_produced_no_branches";
         return result;
-    }
-
-    for (auto& middle_branch : result.middle_branches) {
-        const auto left_match = find_best_matching_outgoing_branch_index(
-            middle_branch,
-            left_branches,
-            config.branch_phi_pairing_max_gap);
-        const auto right_match = find_best_matching_outgoing_branch_index(
-            middle_branch,
-            right_branches,
-            config.branch_phi_pairing_max_gap);
-
-        if (left_match.has_value() && right_match.has_value()) {
-            const auto& left_branch = left_branches[*left_match];
-            const auto& right_branch = right_branches[*right_match];
-            const double dphi = estimate_theta_prime_derivative_central(
-                theta_prime_left,
-                left_branch.encounter_global_angle,
-                theta_prime_right,
-                right_branch.encounter_global_angle);
-            const double de = estimate_theta_prime_derivative_central(
-                theta_prime_left,
-                left_branch.outgoing_eccentricity,
-                theta_prime_right,
-                right_branch.outgoing_eccentricity);
-            if (is_finite(dphi)) {
-                middle_branch.dphi_dtheta_prime = dphi;
-                middle_branch.has_dphi_dtheta_prime = true;
-            }
-            if (is_finite(de)) {
-                middle_branch.de_dtheta_prime = de;
-                middle_branch.has_de_dtheta_prime = true;
-            }
-            continue;
-        }
-
-        if (left_match.has_value()) {
-            const auto& left_branch = left_branches[*left_match];
-            const double dphi = estimate_theta_prime_derivative_forward(
-                theta_prime_left,
-                left_branch.encounter_global_angle,
-                result.theta_prime_middle,
-                middle_branch.encounter_global_angle);
-            const double de = estimate_theta_prime_derivative_forward(
-                theta_prime_left,
-                left_branch.outgoing_eccentricity,
-                result.theta_prime_middle,
-                middle_branch.outgoing_eccentricity);
-            if (is_finite(dphi)) {
-                middle_branch.dphi_dtheta_prime = dphi;
-                middle_branch.has_dphi_dtheta_prime = true;
-            }
-            if (is_finite(de)) {
-                middle_branch.de_dtheta_prime = de;
-                middle_branch.has_de_dtheta_prime = true;
-            }
-            continue;
-        }
-
-        if (right_match.has_value()) {
-            const auto& right_branch = right_branches[*right_match];
-            const double dphi = estimate_theta_prime_derivative_backward(
-                result.theta_prime_middle,
-                middle_branch.encounter_global_angle,
-                theta_prime_right,
-                right_branch.encounter_global_angle);
-            const double de = estimate_theta_prime_derivative_backward(
-                result.theta_prime_middle,
-                middle_branch.outgoing_eccentricity,
-                theta_prime_right,
-                right_branch.outgoing_eccentricity);
-            if (is_finite(dphi)) {
-                middle_branch.dphi_dtheta_prime = dphi;
-                middle_branch.has_dphi_dtheta_prime = true;
-            }
-            if (is_finite(de)) {
-                middle_branch.de_dtheta_prime = de;
-                middle_branch.has_de_dtheta_prime = true;
-            }
-        }
     }
 
     result.ok = true;
@@ -632,10 +809,15 @@ Problem2GNewtonResult refine_flyby_constraint_G_zero_by_newton(
     double initial_theta_prime_local,
     const Problem2OutgoingBranchSolution& reference_branch,
     const Problem2OutgoingBranchSolution& linear_endpoint_branch,
-    double linear_endpoint_theta_prime_local
+    double linear_endpoint_theta_prime_local,
+    Problem2FlybyGSearchProfile* profile
 ) {
     Problem2GNewtonResult result{};
     result.final_theta_prime_local = initial_theta_prime_local;
+
+    if (profile != nullptr) {
+        ++profile->g_newton_calls;
+    }
 
     if (!incoming_cache.valid) {
         result.status = Problem2GNewtonStatus::DivergedInvalidG;
@@ -658,6 +840,9 @@ Problem2GNewtonResult refine_flyby_constraint_G_zero_by_newton(
 
     double theta_prime = initial_theta_prime_local;
     for (int iteration = 0; iteration < options.max_iterations; ++iteration) {
+        if (profile != nullptr) {
+            ++profile->g_newton_iterations;
+        }
         const auto evaluation = evaluate_route_a_G_at_theta_prime(
             incoming_cache,
             scan_config,
@@ -665,7 +850,8 @@ Problem2GNewtonResult refine_flyby_constraint_G_zero_by_newton(
             theta_prime,
             reference_branch,
             linear_endpoint_branch,
-            linear_endpoint_theta_prime_local);
+            linear_endpoint_theta_prime_local,
+            profile);
         if (!evaluation.has_value()) {
             result.status = Problem2GNewtonStatus::DivergedInvalidRouteA;
             result.status_reason = "failed_to_evaluate_route_a_G_sample";
@@ -707,7 +893,8 @@ Problem2GNewtonResult refine_flyby_constraint_G_zero_by_newton(
             theta_prime_next,
             reference_branch,
             linear_endpoint_branch,
-            linear_endpoint_theta_prime_local);
+            linear_endpoint_theta_prime_local,
+            profile);
         if (!next_evaluation.has_value()) {
             result.status = Problem2GNewtonStatus::DivergedInvalidRouteA;
             result.status_reason = "failed_to_evaluate_route_a_after_newton_step";
@@ -762,6 +949,11 @@ std::vector<Problem2FlybyGSolution> process_flyby_constraint_G_branch_interval(
     }
     if (!same_revolution_branch(interval.left_branch, interval.right_branch)) {
         return solutions;
+    }
+
+    Problem2FlybyGSearchProfile* profile = profile_from_config(config);
+    if (profile != nullptr) {
+        ++profile->branch_interval_process_calls;
     }
 
     const auto maybe_G_left = evaluate_flyby_constraint_G_at_branch(
@@ -851,7 +1043,8 @@ std::vector<Problem2FlybyGSolution> process_flyby_constraint_G_branch_interval(
         predicted_theta_prime,
         interval.left_branch,
         *linear_endpoint,
-        linear_endpoint_theta);
+        linear_endpoint_theta,
+        profile);
     if (!newton.ok) {
         return solutions;
     }
@@ -935,6 +1128,11 @@ Problem2FlybyGSearchResult search_flyby_constraint_G_zeros_from_initial_scan(
         return merged;
     }
 
+    if (Problem2FlybyGSearchProfile* profile = profile_from_config(config)) {
+        profile->scan_node_count = scan.nodes.size();
+        profile->max_transfer_revolution = scan.max_transfer_revolution;
+    }
+
     for (int transfer_revolution = 0; transfer_revolution <= scan.max_transfer_revolution; ++transfer_revolution) {
         const auto layer_result = search_flyby_constraint_G_zeros_on_k_layer(
             context,
@@ -955,6 +1153,58 @@ Problem2FlybyGSearchResult search_flyby_constraint_G_zeros_from_initial_scan(
 
     merged.ok = true;
     return merged;
+}
+
+void merge_problem2_flyby_G_search_profile(
+    Problem2FlybyGSearchProfile& into,
+    const Problem2FlybyGSearchProfile& from
+) {
+    into.incoming_cache_ms += from.incoming_cache_ms;
+    into.route_a_ms += from.route_a_ms;
+    into.case_c_middle_ms += from.case_c_middle_ms;
+    into.enrich_ms += from.enrich_ms;
+
+    into.scan_node_count += from.scan_node_count;
+    into.max_transfer_revolution =
+        std::max(into.max_transfer_revolution, from.max_transfer_revolution);
+
+    into.interval_visits += from.interval_visits;
+    into.interval_equal += from.interval_equal;
+    into.interval_case_b += from.interval_case_b;
+    into.interval_case_c += from.interval_case_c;
+    into.interval_discarded += from.interval_discarded;
+
+    into.branch_interval_process_calls += from.branch_interval_process_calls;
+    into.case_b_probe_calls += from.case_b_probe_calls;
+    into.case_c_middle_calls += from.case_c_middle_calls;
+
+    into.route_a_calls += from.route_a_calls;
+    into.route_a_iterations += from.route_a_iterations;
+    into.g_newton_calls += from.g_newton_calls;
+    into.g_newton_iterations += from.g_newton_iterations;
+
+    into.top_interval_equal += from.top_interval_equal;
+    into.top_interval_case_b += from.top_interval_case_b;
+    into.top_interval_case_c += from.top_interval_case_c;
+
+    into.case_c_split_samples += from.case_c_split_samples;
+    into.case_c_endpoint_gap_sum += from.case_c_endpoint_gap_sum;
+    into.case_c_middle_gt_max_endpoints += from.case_c_middle_gt_max_endpoints;
+    into.case_c_middle_lt_min_endpoints += from.case_c_middle_lt_min_endpoints;
+    into.case_c_middle_in_endpoint_range += from.case_c_middle_in_endpoint_range;
+    into.case_c_child_left_equal += from.case_c_child_left_equal;
+    into.case_c_child_left_case_b += from.case_c_child_left_case_b;
+    into.case_c_child_left_case_c += from.case_c_child_left_case_c;
+    into.case_c_child_right_equal += from.case_c_child_right_equal;
+    into.case_c_child_right_case_b += from.case_c_child_right_case_b;
+    into.case_c_child_right_case_c += from.case_c_child_right_case_c;
+
+    into.case_b_split_samples += from.case_b_split_samples;
+    into.case_b_middle_gt_max_endpoints += from.case_b_middle_gt_max_endpoints;
+    into.case_b_middle_lt_min_endpoints += from.case_b_middle_lt_min_endpoints;
+    into.case_b_middle_in_endpoint_range += from.case_b_middle_in_endpoint_range;
+    into.case_b_child_left_case_c += from.case_b_child_left_case_c;
+    into.case_b_child_right_case_c += from.case_b_child_right_case_c;
 }
 
 }  // namespace spaceship_cpp::problem2
